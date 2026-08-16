@@ -40,7 +40,7 @@ Cloud sync намеренно оставлен за адаптером след�
 GitHub Pages автоматически собирает ветку `main` в режиме `github`. Адрес после создания репозитория:
 
 ```text
-https://itstxaviers-svg.github.io/Learn-Letters/
+https://itstxaviers-svg.github.io/HPLetters/
 ```
 
 В публичный репозиторий не включаются внутренние спецификации, legacy-прототипы, `node_modules`, `dist`, локальные переменные окружения и секреты.
