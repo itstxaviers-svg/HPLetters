@@ -1,0 +1,188 @@
+import type { LetterKey, TraceLessonConfig, TraceSegment, TraceStageConfig } from '../types'
+
+export const alphabetOrder = [
+  's', 'i', 't', 'p', 'a', 'n', 'm', 'd', 'g', 'o',
+  'c', 'k', 'e', 'u', 'r', 'h', 'b', 'f', 'l', 'j',
+  'v', 'w', 'x', 'y', 'z',
+] as const
+
+const shared = {
+  requiredSuccesses: 3,
+  maxAttempts: 5,
+  targetAccuracy: 75,
+}
+
+const publicAsset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
+
+const standardStage = (label: string, segments: TraceSegment[]): TraceStageConfig => ({
+  label,
+  segments,
+  strokeRule: segments.some((segment) => segment.tap) ? 'stem-then-tap' : segments.length === 1 ? 'single' : 'strict-two',
+  tolerances: { corridor: 17, segmentCoverage: 0.52, minLength: 8, minPoints: 5 },
+  hint: segments.length === 1
+    ? 'Follow the guide in one smooth stroke. (Следуй по линии одним плавным движением.)'
+    : `Draw ${segments.length} strokes in order. (Нарисуй штрихи по порядку: ${segments.length}.)`,
+})
+
+const makeLesson = (
+  key: LetterKey,
+  order: number,
+  word: string,
+  uppercase: TraceSegment[],
+  lowercase: TraceSegment[],
+): TraceLessonConfig => ({
+  ...shared,
+  key,
+  order,
+  word,
+  soundUrl: '',
+  uppercase: standardStage(key.toUpperCase(), uppercase),
+  lowercase: standardStage(key, lowercase),
+})
+
+export const lessons: TraceLessonConfig[] = [
+  {
+    ...shared,
+    key: 's',
+    order: 0,
+    word: 'sun',
+    soundUrl: publicAsset('audio/s.wav'),
+    uppercase: {
+      label: 'S',
+      strokeRule: 'single',
+      hint: 'Follow the curve in one smooth stroke. (Веди по изгибу одним плавным движением.)',
+      tolerances: { corridor: 13, segmentCoverage: 0.66, minLength: 48, minPoints: 10 },
+      segments: [{ id: 'curve', path: 'M78 24 C74 12 62 8 50 8 C34 8 22 16 22 28 C22 42 36 46 50 50 C66 54 80 58 80 72 C80 86 66 94 48 94 C32 94 20 88 18 78' }],
+    },
+    lowercase: {
+      label: 's',
+      strokeRule: 'single',
+      hint: 'Start at the top and make a small smooth curve. (Начни сверху и нарисуй небольшой плавный изгиб.)',
+      tolerances: { corridor: 14, segmentCoverage: 0.62, minLength: 42, minPoints: 9 },
+      segments: [{ id: 'curve', path: 'M70 36 C66 24 56 18 44 18 C30 18 22 26 22 36 C22 48 34 50 46 52 C60 54 72 58 72 70 C72 82 60 88 46 88 C32 88 20 82 18 72' }],
+    },
+  },
+  {
+    ...shared,
+    key: 'i',
+    order: 1,
+    word: 'igloo',
+    soundUrl: publicAsset('audio/i.mp3'),
+    uppercase: {
+      label: 'I',
+      strokeRule: 'stem-first',
+      hint: 'Draw the long stem, then the top and bottom bars. (Сначала длинная линия, затем верхняя и нижняя перекладины.)',
+      tolerances: { corridor: 15, segmentCoverage: 0.58, minLength: 14, minPoints: 8 },
+      segments: [
+        { id: 'stem', path: 'M50 14 L50 86' },
+        { id: 'top', path: 'M38 14 L62 14' },
+        { id: 'bottom', path: 'M38 86 L62 86' },
+      ],
+    },
+    lowercase: {
+      label: 'i',
+      strokeRule: 'stem-then-tap',
+      hint: 'Draw the stem first, then tap the dot. (Сначала нарисуй линию, затем поставь точку.)',
+      tolerances: { corridor: 16, segmentCoverage: 0.58, minLength: 30, minPoints: 7 },
+      segments: [
+        { id: 'stem', path: 'M50 82 L50 36' },
+        { id: 'dot', path: 'M50 22 m -2 0 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0', tap: { x: 50, y: 22, radius: 8 } },
+      ],
+    },
+  },
+  {
+    ...shared,
+    key: 't',
+    order: 2,
+    word: 'tiger',
+    soundUrl: publicAsset('audio/t.wav'),
+    uppercase: {
+      label: 'T',
+      strokeRule: 'strict-two',
+      hint: 'Draw the stem first, then the top bar. (Сначала нарисуй линию, затем верхнюю перекладину.)',
+      tolerances: { corridor: 14, segmentCoverage: 0.66, minLength: 48, minPoints: 8 },
+      segments: [
+        { id: 'stem', path: 'M50 12 L50 90', underPath: 'M50 14 L50 88' },
+        { id: 'top', path: 'M17 12 L84 12', underPath: 'M24 12 L77 12' },
+      ],
+    },
+    lowercase: {
+      label: 't',
+      strokeRule: 'strict-two',
+      hint: 'Draw down with a little hook, then add the short bar. (Проведи вниз с небольшим крючком, затем добавь короткую перекладину.)',
+      tolerances: { corridor: 17, segmentCoverage: 0.54, minLength: 22, minPoints: 7 },
+      segments: [
+        { id: 'stem', path: 'M52 14 L52 80 Q53 90 70 90', underPath: 'M52 16 L52 78 Q53 88 66 88' },
+        { id: 'cross', path: 'M36 46 L68 46', underPath: 'M40 46 L64 46' },
+      ],
+    },
+  },
+  makeLesson('p', 3, 'pig',
+    [{ id: 'stem', path: 'M30 88 L30 12' }, { id: 'bowl', path: 'M30 14 C78 8 82 50 30 50' }],
+    [{ id: 'stem', path: 'M36 30 L36 94' }, { id: 'bowl', path: 'M36 40 C74 25 78 68 36 68' }]),
+  makeLesson('a', 4, 'apple',
+    [{ id: 'left', path: 'M18 88 L50 12' }, { id: 'right', path: 'M50 12 L82 88' }, { id: 'cross', path: 'M31 59 L69 59' }],
+    [{ id: 'circle', path: 'M62 52 C62 34 48 30 36 36 C20 44 25 78 44 78 C59 78 64 66 62 52' }, { id: 'stem', path: 'M62 35 L62 80' }]),
+  makeLesson('n', 5, 'nest',
+    [{ id: 'left', path: 'M24 88 L24 12' }, { id: 'diagonal', path: 'M24 12 L76 88' }, { id: 'right', path: 'M76 88 L76 12' }],
+    [{ id: 'arch', path: 'M28 80 L28 38 L28 54 C38 30 68 32 68 56 L68 80' }]),
+  makeLesson('m', 6, 'moon',
+    [{ id: 'left', path: 'M16 88 L16 12' }, { id: 'up-left', path: 'M16 12 L50 56' }, { id: 'up-right', path: 'M50 56 L84 12' }, { id: 'right', path: 'M84 12 L84 88' }],
+    [{ id: 'arches', path: 'M20 80 L20 38 L20 54 C28 30 48 34 48 56 L48 80 L48 54 C56 30 78 34 78 56 L78 80' }]),
+  makeLesson('d', 7, 'dog',
+    [{ id: 'stem', path: 'M25 12 L25 88' }, { id: 'bowl', path: 'M25 12 C88 12 88 88 25 88' }],
+    [{ id: 'circle', path: 'M67 52 C67 34 52 30 39 35 C20 42 24 78 44 79 C59 79 67 67 67 52' }, { id: 'stem', path: 'M67 84 L67 16' }]),
+  makeLesson('g', 8, 'goat',
+    [{ id: 'curve', path: 'M82 28 C70 10 38 8 24 28 C8 52 24 90 55 90 C70 90 80 82 82 68' }, { id: 'bar', path: 'M56 58 L84 58 L84 82' }],
+    [{ id: 'circle', path: 'M64 52 C64 34 48 30 36 36 C20 44 24 76 43 78 C58 78 64 66 64 52' }, { id: 'tail', path: 'M64 36 L64 82 C64 98 38 98 32 88' }]),
+  makeLesson('o', 9, 'octopus',
+    [{ id: 'oval', path: 'M50 10 C18 10 12 42 18 64 C24 92 76 94 83 64 C90 35 75 10 50 10 Z' }],
+    [{ id: 'oval', path: 'M48 33 C24 33 20 58 28 72 C38 88 68 80 70 58 C72 42 62 33 48 33 Z' }]),
+  makeLesson('c', 10, 'cat',
+    [{ id: 'curve', path: 'M82 26 C68 8 36 8 22 30 C6 56 23 91 54 91 C68 91 78 84 83 75' }],
+    [{ id: 'curve', path: 'M70 42 C58 28 34 32 26 50 C18 70 36 84 52 80 C62 79 68 74 72 68' }]),
+  makeLesson('k', 11, 'kite',
+    [{ id: 'stem', path: 'M24 12 L24 88' }, { id: 'upper', path: 'M78 12 L24 56' }, { id: 'lower', path: 'M46 38 L82 88' }],
+    [{ id: 'stem', path: 'M30 16 L30 84' }, { id: 'upper', path: 'M68 38 L30 65' }, { id: 'lower', path: 'M48 52 L72 82' }]),
+  makeLesson('e', 12, 'egg',
+    [{ id: 'stem', path: 'M25 12 L25 88' }, { id: 'top', path: 'M25 12 L78 12' }, { id: 'middle', path: 'M25 50 L68 50' }, { id: 'bottom', path: 'M25 88 L80 88' }],
+    [{ id: 'loop', path: 'M70 58 L28 58 C29 36 64 28 70 49 C77 73 48 88 30 73' }]),
+  makeLesson('u', 13, 'umbrella',
+    [{ id: 'curve', path: 'M22 12 L22 62 C22 98 78 98 78 62 L78 12' }],
+    [{ id: 'curve', path: 'M27 38 L27 67 C27 84 62 84 64 66 L64 38 L64 80' }]),
+  makeLesson('r', 14, 'rabbit',
+    [{ id: 'stem', path: 'M24 88 L24 12' }, { id: 'bowl', path: 'M24 14 C76 6 82 50 24 52' }, { id: 'leg', path: 'M49 52 L82 88' }],
+    [{ id: 'curve', path: 'M30 80 L30 38 L30 55 C38 34 57 33 67 42' }]),
+  makeLesson('h', 15, 'hat',
+    [{ id: 'left', path: 'M22 12 L22 88' }, { id: 'right', path: 'M78 12 L78 88' }, { id: 'cross', path: 'M22 51 L78 51' }],
+    [{ id: 'arch', path: 'M29 84 L29 16 L29 55 C39 31 68 34 68 57 L68 84' }]),
+  makeLesson('b', 16, 'ball',
+    [{ id: 'stem', path: 'M25 12 L25 88' }, { id: 'bowls', path: 'M25 12 C72 7 77 47 25 50 C80 45 83 90 25 88' }],
+    [{ id: 'bowl', path: 'M30 16 L30 84 L30 59 C40 38 70 40 72 62 C74 83 43 91 30 73' }]),
+  makeLesson('f', 17, 'fish',
+    [{ id: 'stem', path: 'M28 12 L28 88' }, { id: 'top', path: 'M28 12 L80 12' }, { id: 'middle', path: 'M28 50 L67 50' }],
+    [{ id: 'curve', path: 'M67 20 C43 8 34 24 36 43 L36 90' }, { id: 'cross', path: 'M20 48 L64 48' }]),
+  makeLesson('l', 18, 'lion',
+    [{ id: 'stem', path: 'M28 12 L28 88' }, { id: 'base', path: 'M28 88 L80 88' }],
+    [{ id: 'stem', path: 'M48 16 L48 82' }]),
+  makeLesson('j', 19, 'jam',
+    [{ id: 'top', path: 'M26 12 L78 12' }, { id: 'hook', path: 'M62 12 L62 68 C62 94 26 94 22 72' }],
+    [{ id: 'stem', path: 'M57 38 L57 82 C57 98 34 98 30 88' }, { id: 'dot', path: 'M57 22 m -2 0 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0', tap: { x: 57, y: 22, radius: 8 } }]),
+  makeLesson('v', 20, 'van',
+    [{ id: 'left', path: 'M18 12 L50 88' }, { id: 'right', path: 'M50 88 L82 12' }],
+    [{ id: 'curve', path: 'M25 38 L45 80 C51 84 69 52 74 38' }]),
+  makeLesson('w', 21, 'web',
+    [{ id: 'one', path: 'M10 12 L30 88' }, { id: 'two', path: 'M30 88 L50 28' }, { id: 'three', path: 'M50 28 L70 88' }, { id: 'four', path: 'M70 88 L90 12' }],
+    [{ id: 'curve', path: 'M15 38 L30 78 C35 86 48 58 50 44 C53 62 62 84 68 80 L84 38' }]),
+  makeLesson('x', 22, 'box',
+    [{ id: 'down', path: 'M18 12 L82 88' }, { id: 'up', path: 'M82 12 L18 88' }],
+    [{ id: 'down', path: 'M28 38 L72 82' }, { id: 'up', path: 'M72 38 L28 82' }]),
+  makeLesson('y', 23, 'yellow',
+    [{ id: 'left', path: 'M18 12 L50 52' }, { id: 'right', path: 'M82 12 L50 52' }, { id: 'stem', path: 'M50 52 L50 90' }],
+    [{ id: 'left', path: 'M24 38 L46 72' }, { id: 'tail', path: 'M72 38 L46 72 L38 96' }]),
+  makeLesson('z', 24, 'zebra',
+    [{ id: 'zigzag', path: 'M18 12 L82 12 L18 88 L82 88' }],
+    [{ id: 'zigzag', path: 'M28 38 L72 38 L28 80 L74 80' }]),
+]
+
+export const lessonByKey = Object.fromEntries(lessons.map((lesson) => [lesson.key, lesson])) as Record<string, TraceLessonConfig>

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+**/.DS_Store
+**/__pycache__/
+*.pyc
+cloud/yandex/*.zip
+playwright-report/
+test-results/
+/0/
+/Assets/
+/LEARN_LETTERS_CODEX_SPEC_FINAL.md
