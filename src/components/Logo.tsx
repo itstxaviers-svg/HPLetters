@@ -1,4 +1,4 @@
-import logo from '../assets/brand/logo-learn-letters.png'
+import logo from '../assets/brand/logo-learn-letters.webp'
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (

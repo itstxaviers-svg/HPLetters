@@ -1,13 +1,13 @@
-import goldenQuill from '../assets/rewards/badge-golden-quill.png'
-import firstTry from '../assets/rewards/badge-first-try.png'
-import perfectLetter from '../assets/rewards/badge-perfect-letter.png'
-import persistence from '../assets/rewards/badge-persistence.png'
-import progressSpark from '../assets/rewards/badge-progress-spark.png'
-import uppercaseMaster from '../assets/rewards/badge-uppercase-master.png'
-import lowercaseMaster from '../assets/rewards/badge-lowercase-master.png'
-import letters5 from '../assets/rewards/badge-letters-5.png'
-import letters10 from '../assets/rewards/badge-letters-10.png'
-import alphabetMaster from '../assets/rewards/badge-alphabet-master.png'
+import goldenQuill from '../assets/rewards/badge-golden-quill.webp'
+import firstTry from '../assets/rewards/badge-first-try.webp'
+import perfectLetter from '../assets/rewards/badge-perfect-letter.webp'
+import persistence from '../assets/rewards/badge-persistence.webp'
+import progressSpark from '../assets/rewards/badge-progress-spark.webp'
+import uppercaseMaster from '../assets/rewards/badge-uppercase-master.webp'
+import lowercaseMaster from '../assets/rewards/badge-lowercase-master.webp'
+import letters5 from '../assets/rewards/badge-letters-5.webp'
+import letters10 from '../assets/rewards/badge-letters-10.webp'
+import alphabetMaster from '../assets/rewards/badge-alphabet-master.webp'
 
 export interface BadgeDefinition {
   id: string

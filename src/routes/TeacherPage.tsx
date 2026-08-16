@@ -6,7 +6,7 @@ import { allAttempts, averageAccuracy, competitionScore, completedLetters, compl
 import { badges } from '../data/badges'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
-import trophy from '../assets/rewards/trophy-class-winner.png'
+import trophy from '../assets/rewards/trophy-class-winner.webp'
 
 export function TeacherPage() {
   const { data, currentStudent, teacherMode, enterTeacherMode } = useApp()

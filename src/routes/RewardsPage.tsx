@@ -7,8 +7,8 @@ import { badges } from '../data/badges'
 import { earnedBadgeIds } from '../lib/rewards'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
-import chestClosed from '../assets/rewards/reward-chest-closed.png'
-import chestOpen from '../assets/rewards/reward-chest-open.png'
+import chestClosed from '../assets/rewards/reward-chest-closed.webp'
+import chestOpen from '../assets/rewards/reward-chest-open.webp'
 
 export function RewardsPage() {
   const { currentStudent } = useApp()

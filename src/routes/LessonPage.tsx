@@ -8,7 +8,7 @@ import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
 import { TracingEngine } from '../components/TracingEngine'
 import { Modal } from '../components/Modal'
-import chestOpen from '../assets/rewards/reward-chest-open.png'
+import chestOpen from '../assets/rewards/reward-chest-open.webp'
 
 export function LessonPage() {
   const { letter } = useParams()

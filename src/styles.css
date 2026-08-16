@@ -39,10 +39,10 @@ h1, h2 { letter-spacing: -.025em; }
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: linear-gradient(rgba(255, 249, 239, .28), rgba(247, 241, 222, .68)), url('./assets/backgrounds/bg-main-celestial-bright.png') center / cover fixed;
+  background: linear-gradient(rgba(255, 249, 239, .28), rgba(247, 241, 222, .68)), url('./assets/backgrounds/bg-main-celestial-bright.webp') center / cover fixed;
 }
-.page-shell--tracing { background-image: linear-gradient(rgba(241, 246, 255, .18), rgba(247, 241, 222, .55)), url('./assets/backgrounds/bg-tracing-blue-gold.png'); }
-.page-shell--teacher { background-image: linear-gradient(rgba(250, 247, 237, .58), rgba(245, 239, 220, .82)), url('./assets/backgrounds/bg-teacher-dashboard.png'); }
+.page-shell--tracing { background-image: linear-gradient(rgba(241, 246, 255, .18), rgba(247, 241, 222, .55)), url('./assets/backgrounds/bg-tracing-blue-gold.webp'); }
+.page-shell--teacher { background-image: linear-gradient(rgba(250, 247, 237, .58), rgba(245, 239, 220, .82)), url('./assets/backgrounds/bg-teacher-dashboard.webp'); }
 .page-shell::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(255,249,239,.18), rgba(247,241,222,.28)), radial-gradient(circle at 50% 38%, rgba(255,255,255,.72), transparent 58%); }
 .page-content { position: relative; z-index: 2; width: min(1220px, calc(100% - 40px)); margin: 0 auto; padding: 24px 0 56px; }
 .ambient { position: absolute; z-index: 1; width: 340px; height: 340px; border-radius: 50%; filter: blur(65px); opacity: .22; pointer-events: none; }
