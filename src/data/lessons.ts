@@ -35,7 +35,7 @@ const makeLesson = (
   key,
   order,
   word,
-  soundUrl: '',
+  soundUrl: publicAsset(`audio/${key}.wav`),
   uppercase: standardStage(key.toUpperCase(), uppercase),
   lowercase: standardStage(key, lowercase),
 })
