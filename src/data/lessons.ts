@@ -9,7 +9,7 @@ export const alphabetOrder = [
 const shared = {
   requiredSuccesses: 3,
   maxAttempts: 5,
-  targetAccuracy: 75,
+  targetAccuracy: 80,
 }
 
 const publicAsset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
@@ -18,7 +18,7 @@ const standardStage = (label: string, segments: TraceSegment[]): TraceStageConfi
   label,
   segments,
   strokeRule: segments.some((segment) => segment.tap) ? 'stem-then-tap' : segments.length === 1 ? 'single' : 'strict-two',
-  tolerances: { corridor: 17, segmentCoverage: 0.52, minLength: 8, minPoints: 5 },
+  tolerances: { corridor: 15, segmentCoverage: 0.62, minLength: 10, minPoints: 7 },
   hint: segments.length === 1
     ? 'Follow the guide in one smooth stroke. (Следуй по линии одним плавным движением.)'
     : `Draw ${segments.length} strokes in order. (Нарисуй штрихи по порядку: ${segments.length}.)`,

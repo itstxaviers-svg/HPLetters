@@ -43,6 +43,12 @@ export function LessonPage() {
     }
     const nextSuccesses = successes + (success ? 1 : 0)
     if (nextSuccesses >= lesson.requiredSuccesses) {
+      if (stage === 'uppercase') {
+        window.setTimeout(() => {
+          if (teacherMode) setTeacherStage('lowercase')
+          setClearToken((value) => value + 1)
+        }, 700)
+      }
       if (!teacherMode && stage === 'lowercase') setCompleted(true)
       window.setTimeout(() => setFeedback(null), 1700)
     } else {

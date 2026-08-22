@@ -1,6 +1,7 @@
 import { ArrowLeft, Settings, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Logo } from './Logo'
+import { useApp } from '../context/AppContext'
 
 interface TopBarProps {
   backTo?: string
@@ -11,6 +12,11 @@ interface TopBarProps {
 
 export function TopBar({ backTo, backLabel = 'Back (Назад)', minimal = false, hideBrand = false }: TopBarProps) {
   const navigate = useNavigate()
+  const { syncStatus } = useApp()
+  const syncLabel = syncStatus === 'synced' ? 'Cloud progress saved (Прогресс в облаке)'
+    : syncStatus === 'syncing' ? 'Saving to cloud… (Сохраняем…)'
+      : syncStatus === 'error' ? 'Saved locally • cloud offline (Локально сохранено)'
+        : 'Local progress saved (Прогресс сохранён)'
   return (
     <header className="topbar">
       {backTo ? (
@@ -20,7 +26,7 @@ export function TopBar({ backTo, backLabel = 'Back (Назад)', minimal = fals
       ) : hideBrand ? <span /> : <Logo compact />}
       {!minimal && (
         <div className="topbar__actions">
-          <span className="status-pill"><Sparkles size={15} /> Local progress saved (Прогресс сохранён)</span>
+          <span className={`status-pill status-pill--${syncStatus}`}><Sparkles size={15} /> {syncLabel}</span>
           <button className="icon-button" onClick={() => navigate('/settings')} aria-label="Settings (Настройки)"><Settings size={20} /></button>
         </div>
       )}

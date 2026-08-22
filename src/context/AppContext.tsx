@@ -2,11 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { AppData, AppSettings, Attempt, LessonProgress, LetterKey, StageKind, Student } from '../types'
 import { defaultData, loadData, saveData } from '../lib/storage'
 import { earnedBadgeIds } from '../lib/rewards'
+import { clearTeacherCloudSession, cloudSyncEnabled, loginTeacherCloud, syncStudentCloud, type SyncStatus } from '../lib/cloud'
 
 interface AppContextValue {
   data: AppData
   currentStudent: Student | null
   teacherMode: boolean
+  syncStatus: SyncStatus
+  cloudSyncEnabled: boolean
   registerStudent: (name: string, group: string) => Student
   selectStudent: (id: string | null) => void
   enterTeacherMode: (pin: string) => Promise<boolean>
@@ -37,10 +40,25 @@ const emptyLessonProgress = (letter: LetterKey): LessonProgress => ({
 export function AppProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(() => typeof window === 'undefined' ? defaultData : loadData())
   const [teacherMode, setTeacherMode] = useState(() => sessionStorage.getItem('learn_letters_teacher_mode') === 'true')
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => cloudSyncEnabled ? 'syncing' : 'local')
 
   useEffect(() => saveData(data), [data])
 
   const currentStudent = data.students.find((student) => student.id === data.currentStudentId) ?? null
+
+  useEffect(() => {
+    if (!cloudSyncEnabled || !currentStudent || teacherMode) {
+      if (!cloudSyncEnabled) setSyncStatus('local')
+      return
+    }
+    setSyncStatus('syncing')
+    const timer = window.setTimeout(() => {
+      void syncStudentCloud(currentStudent)
+        .then(() => setSyncStatus('synced'))
+        .catch(() => setSyncStatus('error'))
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [currentStudent, teacherMode])
 
   const registerStudent = useCallback((rawName: string, rawGroup: string) => {
     const name = rawName.trim()
@@ -68,6 +86,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const enterTeacherMode = useCallback(async (pin: string) => {
+    if (cloudSyncEnabled) {
+      try {
+        const cloudStudents = await loginTeacherCloud(pin)
+        setData((previous) => {
+          const cloudIds = new Set(cloudStudents.map((student) => student.id))
+          return { ...previous, students: [...previous.students.filter((student) => !cloudIds.has(student.id)), ...cloudStudents] }
+        })
+        sessionStorage.setItem('learn_letters_teacher_mode', 'true')
+        setTeacherMode(true)
+        return true
+      } catch {
+        return false
+      }
+    }
     if (await pinDigest(pin) !== TEACHER_PIN_DIGEST) return false
     sessionStorage.setItem('learn_letters_teacher_mode', 'true')
     setTeacherMode(true)
@@ -76,6 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const exitTeacherMode = useCallback(() => {
     sessionStorage.removeItem('learn_letters_teacher_mode')
+    clearTeacherCloudSession()
     setTeacherMode(false)
   }, [])
 
@@ -146,8 +179,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearDemoData = useCallback(() => setData(defaultData), [])
 
-  const value = useMemo(() => ({ data, currentStudent, teacherMode, registerStudent, selectStudent, enterTeacherMode, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData }),
-    [data, currentStudent, teacherMode, registerStudent, selectStudent, enterTeacherMode, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData])
+  const value = useMemo(() => ({ data, currentStudent, teacherMode, syncStatus, cloudSyncEnabled, registerStudent, selectStudent, enterTeacherMode, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData }),
+    [data, currentStudent, teacherMode, syncStatus, registerStudent, selectStudent, enterTeacherMode, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

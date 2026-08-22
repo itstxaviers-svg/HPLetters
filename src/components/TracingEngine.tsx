@@ -14,6 +14,7 @@ interface TracingEngineProps {
 interface SegmentResult {
   accuracy: number
   valid: boolean
+  majorDeviation: boolean
 }
 
 function lineLength(points: Point[]) {
@@ -138,26 +139,30 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
       const radius = segment.tap.radius * scale
       const tapLike = lineLength(points) <= Math.max(18, radius * 1.8)
       const accuracy = Math.max(0, 100 - (distance / (radius * 1.7)) * 100)
-      return { accuracy, valid: tapLike && distance <= radius * 1.7 }
+      return { accuracy, valid: tapLike && distance <= radius * 1.7, majorDeviation: distance > radius * 1.25 }
     }
 
     const template = segmentPoints(segment)
     const stride = Math.max(1, Math.floor(points.length / 140))
     const sampledInput = points.filter((_, index) => index % stride === 0)
-    if (!template.length || sampledInput.length < config.tolerances.minPoints) return { accuracy: 0, valid: false }
+    if (!template.length || sampledInput.length < config.tolerances.minPoints) return { accuracy: 0, valid: false, majorDeviation: true }
     const corridor = config.tolerances.corridor * scale
-    const averageDistance = sampledInput.reduce((sum, point) => sum + minDistance(point, template), 0) / sampledInput.length
+    const distances = sampledInput.map((point) => minDistance(point, template))
+    const averageDistance = distances.reduce((sum, distance) => sum + distance, 0) / sampledInput.length
+    const outsideShare = distances.filter((distance) => distance > corridor).length / distances.length
+    const majorDeviation = outsideShare > 0.08 || distances.some((distance) => distance > corridor * 1.65)
     const covered = template.filter((point) => minDistance(point, sampledInput) <= corridor).length / template.length
     const precision = Math.max(0, 1 - averageDistance / corridor)
     const accuracy = Math.max(0, Math.min(100, (precision * 0.58 + covered * 0.42) * 100))
     const valid = lineLength(points) >= config.tolerances.minLength * scale
       && covered >= config.tolerances.segmentCoverage
-    return { accuracy, valid }
+    return { accuracy, valid, majorDeviation }
   }
 
   const assess = (strokes: Point[][]) => {
     const results = config.segments.map((segment, index) => gradeSegment(segment, strokes[index] ?? []))
-    const accuracy = Math.round(results.reduce((sum, result) => sum + result.accuracy, 0) / results.length)
+    const measuredAccuracy = Math.round(results.reduce((sum, result) => sum + result.accuracy, 0) / results.length)
+    const accuracy = results.some((result) => result.majorDeviation) ? Math.min(90, measuredAccuracy) : measuredAccuracy
     const success = results.every((result) => result.valid) && accuracy >= lesson.targetAccuracy
     stopAudio()
     setLocked(true)

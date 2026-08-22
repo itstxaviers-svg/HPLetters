@@ -1,0 +1,42 @@
+CREATE TABLE teachers (
+  teacher_key Utf8 NOT NULL,
+  teacher_id Utf8 NOT NULL,
+  display_name Utf8 NOT NULL,
+  pin_hash Utf8 NOT NULL,
+  join_code Utf8 NOT NULL,
+  created_at Timestamp NOT NULL,
+  PRIMARY KEY (teacher_key)
+);
+
+CREATE TABLE groups (
+  join_code Utf8 NOT NULL,
+  group_id Utf8 NOT NULL,
+  teacher_id Utf8 NOT NULL,
+  display_name Utf8 NOT NULL,
+  created_at Timestamp NOT NULL,
+  PRIMARY KEY (join_code)
+);
+
+CREATE TABLE students (
+  student_id Utf8 NOT NULL,
+  display_name Utf8 NOT NULL,
+  group_id Utf8 NOT NULL,
+  group_display_name Utf8 NOT NULL,
+  join_code Utf8 NOT NULL,
+  created_at Timestamp NOT NULL,
+  updated_at Timestamp NOT NULL,
+  PRIMARY KEY (student_id)
+);
+
+CREATE TABLE group_members (
+  group_id Utf8 NOT NULL,
+  student_id Utf8 NOT NULL,
+  PRIMARY KEY (group_id, student_id)
+);
+
+CREATE TABLE student_snapshots (
+  student_id Utf8 NOT NULL,
+  payload Json NOT NULL,
+  updated_at Timestamp NOT NULL,
+  PRIMARY KEY (student_id)
+);

@@ -37,10 +37,10 @@ export function WelcomePage() {
         <motion.div className="parchment-card registration-card" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}>
           <span className="card-kicker">Student spellbook (Книга ученика)</span>
           <h2><span className="title-en">Start your journey</span><small className="title-ru">(Начни обучение)</small></h2>
-          <p>Enter your name and class group. We’ll remember your progress on this device. (Введи имя и группу — прогресс сохранится на этом устройстве.)</p>
+          <p>Enter your name and class Join Code. Your progress is saved on this device and, when cloud sync is connected, in the teacher dashboard. (Введи имя и код класса. Прогресс сохранится на устройстве, а после подключения облака — у учителя.)</p>
           <form onSubmit={submit}>
             <label>Student name (Имя ученика)<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Maya (например, Маша)" autoComplete="name" required /></label>
-            <label>Group (Группа)<input value={group} onChange={(event) => setGroup(event.target.value)} placeholder="e.g. 2A (например, 2А)" required /></label>
+            <label>Group / Join Code (Группа / код класса)<input value={group} onChange={(event) => setGroup(event.target.value.toUpperCase())} placeholder="e.g. LETTERS-2A" required /></label>
             <button className="primary-button" type="submit">Open my spellbook (Открыть книгу) <ArrowRight size={19} /></button>
           </form>
 

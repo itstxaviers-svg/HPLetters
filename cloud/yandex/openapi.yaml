@@ -1,0 +1,21 @@
+openapi: 3.0.0
+info:
+  title: Learn Letters Sync API
+  version: 1.0.0
+
+paths:
+  /{path+}:
+    x-yc-apigateway-any-method:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: <FUNCTION_ID>
+        service_account_id: <SERVICE_ACCOUNT_ID>
+        payload_format_version: '1.0'
+      parameters:
+        - explode: false
+          in: path
+          name: path
+          required: false
+          schema:
+            default: '-'
+            type: string
