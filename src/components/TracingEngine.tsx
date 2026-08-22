@@ -32,6 +32,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const soundPlayedRef = useRef(false)
   const strokesRef = useRef<Point[][]>([])
   const activeStrokeRef = useRef<Point[] | null>(null)
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 })
@@ -82,6 +83,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   const clear = useCallback(() => {
     strokesRef.current = []
     activeStrokeRef.current = null
+    soundPlayedRef.current = false
     setStrokeCount(0)
     stopAudio()
     draw()
@@ -178,9 +180,11 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     event.currentTarget.setPointerCapture(event.pointerId)
     const point = localPoint(event)
     activeStrokeRef.current = [point]
-    if (soundEnabled && audioRef.current?.paused) {
+    if (soundEnabled && audioRef.current && !soundPlayedRef.current) {
+      soundPlayedRef.current = true
       audioRef.current.currentTime = 0
-      void audioRef.current.play().catch(() => undefined)
+      audioRef.current.volume = 0.58
+      void audioRef.current.play().catch(() => { soundPlayedRef.current = false })
     }
     draw()
   }
@@ -235,7 +239,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
         {config.segments.map((segment, index) => <span key={segment.id} className={index < strokeCount ? 'is-done' : ''}>{index + 1}</span>)}
         <small>{config.segments.length === 1 ? 'one smooth stroke (одно плавное движение)' : `${config.segments.length} strokes in order (штриха по порядку)`}</small>
       </div>
-      {lesson.soundUrl && <audio ref={audioRef} src={lesson.soundUrl} preload="auto" loop />}
+      {lesson.soundUrl && <audio ref={audioRef} src={lesson.soundUrl} preload="auto" />}
     </div>
   )
 }

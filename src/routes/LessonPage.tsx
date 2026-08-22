@@ -59,6 +59,7 @@ export function LessonPage() {
   const replaySound = () => {
     if (!lesson.soundUrl) return
     const audio = new Audio(lesson.soundUrl)
+    audio.volume = 0.62
     void audio.play().catch(() => undefined)
   }
 
