@@ -221,6 +221,7 @@ input::placeholder { color: #9c9eb0; }
 .guide-line--middle { stroke: rgba(215,180,106,.3); }
 .trace-path-under { fill: none; stroke: rgba(215,180,106,.15); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
 .trace-path { fill: none; stroke: rgba(29,42,82,.42); stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2.5 2.3; filter: drop-shadow(0 0 2px rgba(139,184,255,.35)); }
+.trace-start-dot { fill: #d44f43; stroke: rgba(255,255,255,.95); stroke-width: 1; filter: drop-shadow(0 0 3px rgba(212,79,67,.5)); }
 .grading-badge { position: absolute; z-index: 5; left: 50%; top: 50%; display: flex; align-items: center; gap: 8px; transform: translate(-50%, -50%); padding: 11px 16px; border-radius: 999px; color: #76561f; background: rgba(255,250,229,.94); box-shadow: 0 14px 45px rgba(32,38,77,.17); font-size: 13px; font-weight: 900; }
 .grading-badge svg { position: static; width: 18px; }
 .stroke-dots { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 9px; }

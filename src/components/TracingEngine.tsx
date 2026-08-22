@@ -176,12 +176,17 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     const distances = sampledInput.map((point) => minDistance(point, template))
     const averageDistance = distances.reduce((sum, distance) => sum + distance, 0) / sampledInput.length
     const outsideShare = distances.filter((distance) => distance > corridor).length / distances.length
-    const majorDeviation = outsideShare > 0.08 || distances.some((distance) => distance > corridor * 1.65)
+    const directionValid = !segment.strictStart || (
+      minDistance(sampledInput[0], [template[0]]) <= segment.strictStart.radius * scale
+      && minDistance(sampledInput.at(-1)!, [template.at(-1)!]) <= corridor
+    )
+    const majorDeviation = !directionValid || outsideShare > 0.08 || distances.some((distance) => distance > corridor * 1.65)
     const covered = template.filter((point) => minDistance(point, sampledInput) <= corridor).length / template.length
     const precision = Math.max(0, 1 - averageDistance / corridor)
     const accuracy = Math.max(0, Math.min(100, (precision * 0.58 + covered * 0.42) * 100))
     const valid = lineLength(points) >= config.tolerances.minLength * scale
       && covered >= config.tolerances.segmentCoverage
+      && directionValid
     return { accuracy, valid, majorDeviation }
   }
 
@@ -204,6 +209,15 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     if (disabled || locked || strokesRef.current.length >= config.segments.length) return
     event.currentTarget.setPointerCapture(event.pointerId)
     const point = localPoint(event)
+    const segment = config.segments[strokesRef.current.length]
+    if (segment.strictStart) {
+      const { scale, offsetX, offsetY } = viewBoxTransform()
+      const target = { x: offsetX + segment.strictStart.x * scale, y: offsetY + segment.strictStart.y * scale }
+      if (Math.hypot(point.x - target.x, point.y - target.y) > segment.strictStart.radius * scale) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+        return
+      }
+    }
     activeStrokeRef.current = [point]
     attemptActiveRef.current = true
     if (soundEnabled && audioRef.current && !soundPlayedRef.current) {
@@ -248,6 +262,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
             <g key={segment.id}>
               <path className="trace-path-under" d={segment.underPath ?? segment.path} />
               <path data-segment={segment.id} className="trace-path" d={segment.path} />
+              {segment.strictStart && config.segments[strokeCount] === segment && <circle className="trace-start-dot" cx={segment.strictStart.x} cy={segment.strictStart.y} r={segment.strictStart.radius * 0.7} />}
             </g>
           ))}
         </svg>

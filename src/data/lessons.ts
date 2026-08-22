@@ -6,6 +6,9 @@ export const alphabetOrder = [
   'v', 'w', 'x', 'y', 'z',
 ] as const
 
+export const studentReleaseThrough: LetterKey = 'h'
+export const studentReleaseCount = alphabetOrder.indexOf(studentReleaseThrough) + 1
+
 const shared = {
   requiredSuccesses: 3,
   maxAttempts: 5,
@@ -124,7 +127,7 @@ export const lessons: TraceLessonConfig[] = [
     [{ id: 'left', path: 'M18 88 L50 12' }, { id: 'right', path: 'M50 12 L82 88' }, { id: 'cross', path: 'M31 59 L69 59' }],
     [{ id: 'circle', path: 'M62 52 C62 34 48 30 36 36 C20 44 25 78 44 78 C59 78 64 66 62 52' }, { id: 'stem', path: 'M62 35 L62 80' }]),
   makeLesson('n', 5, 'nest',
-    [{ id: 'left', path: 'M24 88 L24 12' }, { id: 'diagonal', path: 'M24 12 L76 88' }, { id: 'right', path: 'M76 88 L76 12' }],
+    [{ id: 'left', path: 'M24 88 L24 12', strictStart: { x: 24, y: 88, radius: 6 } }, { id: 'diagonal', path: 'M24 12 L76 88' }, { id: 'right', path: 'M76 88 L76 12' }],
     [{ id: 'arch', path: 'M28 80 L28 38 L28 54 C38 30 68 32 68 56 L68 80' }]),
   makeLesson('m', 6, 'moon',
     [{ id: 'left', path: 'M16 88 L16 12' }, { id: 'up-left', path: 'M16 12 L50 56' }, { id: 'up-right', path: 'M50 56 L84 12' }, { id: 'right', path: 'M84 12 L84 88' }],

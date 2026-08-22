@@ -14,6 +14,7 @@ export interface TraceSegment {
   path: string
   underPath?: string
   tap?: { x: number; y: number; radius: number }
+  strictStart?: { x: number; y: number; radius: number }
 }
 
 export interface TraceTolerances {

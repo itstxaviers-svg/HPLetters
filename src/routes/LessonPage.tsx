@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { RotateCcw, Volume2, VolumeX, WandSparkles } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { lessonByKey } from '../data/lessons'
+import { lessonByKey, studentReleaseCount } from '../data/lessons'
 import type { StageKind } from '../types'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
@@ -33,6 +33,7 @@ export function LessonPage() {
 
   if (!currentStudent) return <Navigate to="/" replace />
   if (!lesson) return <Navigate to="/menu" replace />
+  if (!teacherMode && lesson.order >= studentReleaseCount) return <Navigate to="/menu" replace />
 
   const handleResult = (accuracy: number, success: boolean) => {
     setFeedback({ accuracy, success })
