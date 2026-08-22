@@ -33,6 +33,8 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   const svgRef = useRef<SVGSVGElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const soundPlayedRef = useRef(false)
+  const attemptActiveRef = useRef(false)
+  const repeatTimerRef = useRef<number | null>(null)
   const strokesRef = useRef<Point[][]>([])
   const activeStrokeRef = useRef<Point[] | null>(null)
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 })
@@ -40,6 +42,10 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   const [locked, setLocked] = useState(false)
 
   const stopAudio = useCallback(() => {
+    if (repeatTimerRef.current !== null) {
+      window.clearTimeout(repeatTimerRef.current)
+      repeatTimerRef.current = null
+    }
     const audio = audioRef.current
     if (!audio) return
     audio.pause()
@@ -84,6 +90,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     strokesRef.current = []
     activeStrokeRef.current = null
     soundPlayedRef.current = false
+    attemptActiveRef.current = false
     setStrokeCount(0)
     stopAudio()
     draw()
@@ -91,8 +98,25 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
 
   useEffect(() => {
     const audio = audioRef.current
-    if (!soundEnabled) stopAudio()
-    return () => audio?.pause()
+    const repeatAfterPause = () => {
+      if (!soundEnabled || !attemptActiveRef.current) return
+      repeatTimerRef.current = window.setTimeout(() => {
+        if (!audio || !soundEnabled || !attemptActiveRef.current) return
+        audio.currentTime = 0
+        audio.volume = 0.58
+        void audio.play().catch(() => undefined)
+      }, 4000)
+    }
+    audio?.addEventListener('ended', repeatAfterPause)
+    if (!soundEnabled) {
+      soundPlayedRef.current = false
+      stopAudio()
+    }
+    return () => {
+      audio?.removeEventListener('ended', repeatAfterPause)
+      if (repeatTimerRef.current !== null) window.clearTimeout(repeatTimerRef.current)
+      audio?.pause()
+    }
   }, [soundEnabled, stopAudio])
 
   useEffect(() => {
@@ -166,6 +190,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     const measuredAccuracy = Math.round(results.reduce((sum, result) => sum + result.accuracy, 0) / results.length)
     const accuracy = results.some((result) => result.majorDeviation) ? Math.min(90, measuredAccuracy) : measuredAccuracy
     const success = results.every((result) => result.valid) && accuracy >= lesson.targetAccuracy
+    attemptActiveRef.current = false
     stopAudio()
     setLocked(true)
     window.setTimeout(() => {
@@ -180,6 +205,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     event.currentTarget.setPointerCapture(event.pointerId)
     const point = localPoint(event)
     activeStrokeRef.current = [point]
+    attemptActiveRef.current = true
     if (soundEnabled && audioRef.current && !soundPlayedRef.current) {
       soundPlayedRef.current = true
       audioRef.current.currentTime = 0
