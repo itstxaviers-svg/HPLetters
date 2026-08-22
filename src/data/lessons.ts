@@ -179,7 +179,7 @@ export const lessons: TraceLessonConfig[] = [
     [{ id: 'down', path: 'M28 38 L72 82' }, { id: 'up', path: 'M72 38 L28 82' }]),
   makeLesson('y', 23, 'yellow',
     [{ id: 'cursive-capital', path: 'M16 25 C25 16 36 12 42 17 C49 24 45 37 38 47 C33 54 36 58 44 58 C56 58 72 36 84 17 C75 39 65 61 53 78 C45 90 34 94 24 90 C18 88 14 84 11 80' }],
-    [{ id: 'cursive-lowercase', path: 'M36 28 C35 40 31 53 27 63 C24 70 28 76 37 76 C50 76 68 51 81 28 C72 50 63 68 49 84 C42 92 35 98 29 95 C24 92 25 85 31 81 C39 76 47 85 55 83 C66 80 74 69 80 57' }]),
+    [{ id: 'cursive-lowercase', path: 'M32 32 C31 44 28 57 30 64 C32 71 39 74 46 71 C56 67 66 48 72 32 C66 50 59 68 49 82 C41 93 34 98 28 94 C22 90 24 83 30 79 C37 75 44 82 51 81 C62 79 71 67 78 56' }]),
   makeLesson('z', 24, 'zebra',
     [{ id: 'zigzag', path: 'M18 12 L82 12 L18 88 L82 88' }],
     [{ id: 'zigzag', path: 'M28 38 L72 38 L28 80 L74 80' }]),
