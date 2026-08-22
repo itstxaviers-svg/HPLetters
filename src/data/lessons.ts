@@ -35,7 +35,7 @@ const makeLesson = (
   key,
   order,
   word,
-  soundUrl: publicAsset(`audio/${key}.wav`),
+  soundUrl: publicAsset(`audio/${key}.mp3`),
   uppercase: standardStage(key.toUpperCase(), uppercase),
   lowercase: standardStage(key, lowercase),
 })
@@ -46,7 +46,7 @@ export const lessons: TraceLessonConfig[] = [
     key: 's',
     order: 0,
     word: 'sun',
-    soundUrl: publicAsset('audio/s.wav'),
+    soundUrl: publicAsset('audio/s.mp3'),
     uppercase: {
       label: 'S',
       strokeRule: 'single',
@@ -95,7 +95,7 @@ export const lessons: TraceLessonConfig[] = [
     key: 't',
     order: 2,
     word: 'tiger',
-    soundUrl: publicAsset('audio/t.wav'),
+    soundUrl: publicAsset('audio/t.mp3'),
     uppercase: {
       label: 'T',
       strokeRule: 'strict-two',
