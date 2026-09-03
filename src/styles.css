@@ -374,6 +374,87 @@ input::placeholder { color: #9c9eb0; }
   .welcome-page .registration-card { padding-top: 22px; padding-bottom: 16px; }
 }
 
+/* Wide projectors often have plenty of width but only 600–760 px of usable
+   browser height. Keep the full menu and all three letter rows in view. */
+@media (min-width: 1021px) and (max-height: 780px) {
+  .menu-page .page-content {
+    width: min(1400px, calc(100% - 28px));
+    padding-top: 6px;
+    padding-bottom: 8px;
+  }
+  .menu-page .topbar { min-height: 38px; margin-bottom: 4px; }
+  .menu-page .topbar .status-pill { padding: 6px 9px; font-size: 10px; }
+  .menu-page .topbar .icon-button { min-width: 38px; height: 38px; border-radius: 12px; }
+
+  .menu-page .menu-dashboard {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .menu-page .menu-dashboard__main { padding: 11px 17px; border-radius: 19px; }
+  .menu-page .menu-dashboard__top { gap: 14px; }
+  .menu-page .menu-dashboard__top .brand { gap: 8px; }
+  .menu-page .menu-dashboard__top .brand img { width: 42px; height: 42px; }
+  .menu-page .menu-dashboard__top .brand strong { font-size: 17px; }
+  .menu-page .menu-dashboard__top .hero-badge { padding: 6px 9px; font-size: 10px; }
+  .menu-page .menu-dashboard__main h1 { margin: 7px 0 3px; font-size: 32px; line-height: .95; }
+  .menu-page .menu-dashboard__main h1 .title-ru { margin-top: .12em; font-size: .43em; }
+  .menu-page .menu-dashboard__main p { font-size: 10px; line-height: 1.25; }
+  .menu-page .menu-intro__ru { margin-top: 2px; }
+
+  .menu-page .menu-dashboard__side { gap: 5px; }
+  .menu-page .menu-dashboard__side .menu-progress-card { padding: 5px 9px; border-radius: 14px; }
+  .menu-page .menu-dashboard__side .progress-ring { width: 51px; height: 51px; }
+  .menu-page .menu-dashboard__side .progress-ring::before { width: 41px; height: 41px; }
+  .menu-page .menu-dashboard__side .progress-ring strong { font-size: 12px; }
+  .menu-page .menu-dashboard__side .progress-ring span { font-size: 6px; }
+  .menu-page .menu-progress-card > div:last-child > strong { font-size: 13px; }
+  .menu-page .menu-progress-card span,
+  .menu-page .menu-progress-card small { font-size: 9px; }
+  .menu-page .quick-actions.quick-actions--compact { gap: 4px; }
+  .menu-page .quick-actions--compact button { min-height: 34px; padding: 3px 7px; border-radius: 11px; gap: 7px; }
+  .menu-page .quick-actions--compact .quick-icon { width: 28px; height: 28px; border-radius: 8px; }
+  .menu-page .quick-actions--compact .quick-icon svg { width: 15px; }
+  .menu-page .quick-actions--compact strong { font-size: 9px; }
+  .menu-page .quick-actions--compact small { margin-top: 1px; font-size: 7px; }
+  .menu-page .quick-actions--compact button > svg { width: 12px; }
+
+  .menu-page .teacher-mode-banner { gap: 8px; margin: 0 0 8px; padding: 6px 10px; border-radius: 13px; }
+  .menu-page .teacher-mode-banner > svg { width: 18px; }
+  .menu-page .teacher-mode-banner strong { font-size: 11px; }
+  .menu-page .teacher-mode-banner small { font-size: 8px; line-height: 1.2; }
+  .menu-page .teacher-mode-banner button { padding: 5px 9px; font-size: 9px; }
+
+  .menu-page .letter-section { padding: 8px 13px; border-radius: 20px; }
+  .menu-page .section-heading { margin-bottom: 5px; }
+  .menu-page .section-heading .card-kicker { margin-bottom: 3px; font-size: 8px; }
+  .menu-page .section-heading h2 { font-size: 19px; }
+  .menu-page .section-heading h2 .title-ru { margin-top: .1em; font-size: .43em; }
+  .menu-page .legend { gap: 10px; font-size: 9px; }
+  .menu-page .letter-grid {
+    grid-template-rows: repeat(3, minmax(38px, 1fr));
+    gap: 6px;
+  }
+  .menu-page .letter-card { padding: 4px; border-radius: 13px; }
+  .menu-page .letter-card > strong { font-size: 24px; }
+  .menu-page .letter-card > strong small { font-size: 14px; }
+  .menu-page .letter-number { top: 5px; left: 7px; font-size: 8px; }
+  .menu-page .letter-status { right: 5px; bottom: 5px; width: 19px; height: 19px; }
+  .menu-page .letter-status svg { width: 10px; }
+}
+
+@media (min-width: 1021px) and (max-height: 610px) {
+  .menu-page .menu-dashboard__main { padding-top: 8px; padding-bottom: 8px; }
+  .menu-page .menu-dashboard__main h1 { font-size: 27px; }
+  .menu-page .menu-dashboard__main p { font-size: 9px; }
+  .menu-page .menu-dashboard__side .progress-ring { width: 44px; height: 44px; }
+  .menu-page .menu-dashboard__side .progress-ring::before { width: 36px; height: 36px; }
+  .menu-page .quick-actions--compact button { min-height: 30px; }
+  .menu-page .quick-actions--compact .quick-icon { width: 25px; height: 25px; }
+  .menu-page .teacher-mode-banner small { display: none; }
+  .menu-page .letter-card > strong { font-size: 21px; }
+}
+
 @media (max-width: 1020px) {
   .menu-dashboard { grid-template-columns: minmax(0, 1fr) 310px; }
   .welcome-layout { grid-template-columns: 1fr 420px; gap: 35px; }
