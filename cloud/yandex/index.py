@@ -184,8 +184,8 @@ def _bootstrap_teacher(event, data):
     display_name = str(data.get("displayName", "Teacher")).strip()[:60]
     group_name = str(data.get("groupName", "Learn Letters")).strip()[:80]
     join_code = str(data.get("joinCode", "")).strip().upper()[:24]
-    if not re.fullmatch(r"\d{6,12}", pin) or not display_name or not group_name or not re.fullmatch(r"[A-Z0-9-]{4,24}", join_code):
-        return _response(400, {"message": "Use a 6–12 digit PIN and a 4–24 character Join Code."})
+    if not re.fullmatch(r"\d{6,12}", pin) or not display_name or not group_name or not re.fullmatch(r"[A-Z0-9-]{1,24}", join_code):
+        return _response(400, {"message": "Use a 6–12 digit PIN and a 1–24 character Join Code."})
     existing = _rows(_query("SELECT teacher_key FROM teachers WHERE teacher_key = 'primary';"))
     if existing:
         return _response(409, {"message": "Teacher is already configured."})
@@ -202,6 +202,30 @@ def _bootstrap_teacher(event, data):
     return _response(201, {"ok": True, "joinCode": join_code, "groupName": group_name})
 
 
+def _teacher_add_group(event, data):
+    identity = _authenticate(event, "teacher")
+    if not identity:
+        return _response(401, {"message": "Teacher login required."})
+    group_name = str(data.get("groupName", "")).strip()[:80]
+    join_code = str(data.get("joinCode", "")).strip().upper()[:24]
+    if not group_name or not re.fullmatch(r"[A-Z0-9-]{1,24}", join_code):
+        return _response(400, {"message": "Enter a group name and a 1–24 character Join Code."})
+    existing = _rows(_query("""
+        DECLARE $join_code AS Utf8;
+        SELECT teacher_id FROM groups WHERE join_code = $join_code;
+    """, join_code=join_code))
+    if existing:
+        return _response(409, {"message": "This Join Code is already used. Choose another one."})
+    group_id, now = str(uuid.uuid4()), _utcnow()
+    _query("""
+        DECLARE $join_code AS Utf8; DECLARE $group_id AS Utf8; DECLARE $teacher_id AS Utf8;
+        DECLARE $group_name AS Utf8; DECLARE $now AS Timestamp;
+        UPSERT INTO groups (join_code, group_id, teacher_id, display_name, created_at)
+        VALUES ($join_code, $group_id, $teacher_id, $group_name, $now);
+    """, join_code=join_code, group_id=group_id, teacher_id=identity["sub"], group_name=group_name, now=now)
+    return _response(201, {"ok": True, "joinCode": join_code, "groupName": group_name})
+
+
 def _register_student(data):
     student_id = str(data.get("studentId", "")).strip()
     display_name = str(data.get("displayName", "")).strip()[:40]
@@ -210,7 +234,7 @@ def _register_student(data):
         uuid.UUID(student_id)
     except (ValueError, AttributeError):
         return _response(400, {"message": "Student ID is invalid."})
-    if not display_name or not re.fullmatch(r"[A-Z0-9-]{4,24}", join_code):
+    if not display_name or not re.fullmatch(r"[A-Z0-9-]{1,24}", join_code):
         return _response(400, {"message": "Enter a name and the exact class Join Code."})
     groups = _rows(_query("""
         DECLARE $join_code AS Utf8;
@@ -274,7 +298,7 @@ def _login_teacher(data):
     if not teacher or not _verify_pin(pin, _value(teacher, "pin_hash")):
         return _response(401, {"message": "Teacher PIN is not correct."})
     teacher_id = _value(teacher, "teacher_id")
-    return _response(200, {"session": _issue_token("teacher", teacher_id, {"joinCode": _value(teacher, "join_code")})})
+    return _response(200, {"session": _issue_token("teacher", teacher_id)})
 
 
 def _teacher_students(event):
@@ -282,37 +306,38 @@ def _teacher_students(event):
     if not identity:
         return _response(401, {"message": "Teacher login required."})
     groups = _rows(_query("""
-        DECLARE $join_code AS Utf8; DECLARE $teacher_id AS Utf8;
-        SELECT group_id, display_name FROM groups WHERE join_code = $join_code AND teacher_id = $teacher_id;
-    """, join_code=identity.get("joinCode", ""), teacher_id=identity["sub"]))
+        DECLARE $teacher_id AS Utf8;
+        SELECT group_id, display_name FROM groups WHERE teacher_id = $teacher_id;
+    """, teacher_id=identity["sub"]))
     if not groups:
-        return _response(404, {"message": "Teacher class was not found."})
-    group_id = _value(groups[0], "group_id")
-    group_name = _value(groups[0], "display_name")
-    members = _rows(_query("""
-        DECLARE $group_id AS Utf8;
-        SELECT student_id FROM group_members WHERE group_id = $group_id;
-    """, group_id=group_id))
+        return _response(404, {"message": "Teacher groups were not found."})
     students = []
-    for member in members:
-        student_id = _value(member, "student_id")
-        snapshots = _rows(_query("""
-            DECLARE $student_id AS Utf8;
-            SELECT payload FROM student_snapshots WHERE student_id = $student_id;
-        """, student_id=student_id))
-        if snapshots:
-            students.append(json.loads(_value(snapshots[0], "payload")))
-            continue
-        row = _find_student(student_id)
-        if row:
-            students.append({
-                "id": student_id,
-                "name": _value(row, "display_name"),
-                "group": group_name,
-                "createdAt": _iso(_value(row, "created_at")),
-                "progress": {},
-                "badges": [],
-            })
+    for group in groups:
+        group_id = _value(group, "group_id")
+        group_name = _value(group, "display_name")
+        members = _rows(_query("""
+            DECLARE $group_id AS Utf8;
+            SELECT student_id FROM group_members WHERE group_id = $group_id;
+        """, group_id=group_id))
+        for member in members:
+            student_id = _value(member, "student_id")
+            snapshots = _rows(_query("""
+                DECLARE $student_id AS Utf8;
+                SELECT payload FROM student_snapshots WHERE student_id = $student_id;
+            """, student_id=student_id))
+            if snapshots:
+                students.append(json.loads(_value(snapshots[0], "payload")))
+                continue
+            row = _find_student(student_id)
+            if row:
+                students.append({
+                    "id": student_id,
+                    "name": _value(row, "display_name"),
+                    "group": group_name,
+                    "createdAt": _iso(_value(row, "created_at")),
+                    "progress": {},
+                    "badges": [],
+                })
     students.sort(key=lambda item: (str(item.get("group", "")), str(item.get("name", "")).lower()))
     return _response(200, {"students": students})
 
@@ -327,6 +352,8 @@ def handler(event, context):
             return _response(200, {"ok": True, "service": "learn-letters-sync"})
         if method == "POST" and path == "/setup/teacher":
             return _bootstrap_teacher(event, data)
+        if method == "POST" and path == "/teacher/groups":
+            return _teacher_add_group(event, data)
         if method == "POST" and path == "/student/register":
             return _register_student(data)
         if method == "POST" and path == "/student/sync":

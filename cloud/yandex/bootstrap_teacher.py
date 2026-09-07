@@ -1,5 +1,7 @@
 import getpass
 import json
+import os
+import ssl
 import urllib.error
 import urllib.request
 
@@ -24,8 +26,17 @@ request = urllib.request.Request(
     headers={"Content-Type": "application/json", "X-Bootstrap-Secret": bootstrap_secret},
 )
 
+system_ca_file = "/etc/ssl/cert.pem"
+ssl_context = (
+    ssl.create_default_context(cafile=system_ca_file)
+    if os.path.exists(system_ca_file)
+    else ssl.create_default_context()
+)
+
 try:
-    with urllib.request.urlopen(request) as response:
+    with urllib.request.urlopen(request, context=ssl_context, timeout=45) as response:
         print("Готово:", response.read().decode("utf-8"))
 except urllib.error.HTTPError as error:
     print("Ошибка:", error.code, error.read().decode("utf-8"))
+except urllib.error.URLError as error:
+    print("Ошибка соединения:", error.reason)

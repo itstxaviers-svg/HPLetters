@@ -9,6 +9,19 @@ export const alphabetOrder = [
 export const studentReleaseThrough: LetterKey = 'h'
 export const studentReleaseCount = alphabetOrder.indexOf(studentReleaseThrough) + 1
 
+/**
+ * Current classroom release plan.
+ * Unknown/legacy groups keep the original path through H so existing profiles
+ * are never unexpectedly locked out.
+ */
+export function studentReleaseCountForGroup(group: string): number {
+  const key = group.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (key === '15' || key === 'learnletters15') return 2
+  if (key === '16' || key === 'learnletters16') return 2
+  if (key === '1112' || key === 'learnletters1112') return alphabetOrder.length
+  return studentReleaseCount
+}
+
 const shared = {
   requiredSuccesses: 3,
   maxAttempts: 5,

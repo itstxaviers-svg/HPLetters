@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Award, Check, ChevronRight, LockKeyhole, LogOut, ShieldCheck, Sparkles } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { alphabetOrder, lessonByKey, studentReleaseCount } from '../data/lessons'
+import { alphabetOrder, lessonByKey, studentReleaseCountForGroup } from '../data/lessons'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
 import { ProgressRing } from '../components/ProgressRing'
@@ -15,7 +15,7 @@ export function MenuPage() {
   const navigate = useNavigate()
   const [pendingLetter, setPendingLetter] = useState<string | null>(null)
   if (!currentStudent) return null
-  const pathLength = teacherMode ? alphabetOrder.length : studentReleaseCount
+  const pathLength = teacherMode ? alphabetOrder.length : studentReleaseCountForGroup(currentStudent.group)
   const completeCount = alphabetOrder.slice(0, pathLength).filter((letter) => currentStudent.progress[letter]?.completed).length
 
   return (
@@ -49,7 +49,7 @@ export function MenuPage() {
         <div className="section-heading"><div><span className="card-kicker">Phonics path (Путь звуков)</span><h2><span className="title-en">Alphabet lessons</span><small className="title-ru">(Уроки алфавита)</small></h2></div><div className="legend"><span><i className="legend-dot legend-dot--done" />Mastered (Изучено)</span><span><i className="legend-dot legend-dot--ready" />Ready (Доступно)</span><span><i className="legend-dot" />Locked (Закрыто)</span></div></div>
         <motion.div className="letter-grid" initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.025 } } }}>
           {alphabetOrder.map((letter, index) => {
-            const released = index < studentReleaseCount
+            const released = index < pathLength
             const completed = (teacherMode || released) && Boolean(currentStudent.progress[letter as 's' | 'i' | 't']?.completed)
             const unlocked = index === 0 || alphabetOrder.slice(0, index).every((prior) => currentStudent.progress[prior as 's' | 'i' | 't']?.completed)
             const available = Boolean(lessonByKey[letter])
