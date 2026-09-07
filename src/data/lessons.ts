@@ -22,6 +22,12 @@ export function studentReleaseCountForGroup(group: string): number {
   return studentReleaseCount
 }
 
+/** Only the combined 11-12 group advances one completed letter at a time. */
+export function studentUsesSequentialUnlockForGroup(group: string): boolean {
+  const key = group.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+  return key === '1112' || key === 'learnletters1112'
+}
+
 const shared = {
   requiredSuccesses: 3,
   maxAttempts: 5,

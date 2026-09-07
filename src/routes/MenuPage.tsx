@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Award, Check, ChevronRight, LockKeyhole, LogOut, ShieldCheck, Sparkles } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { alphabetOrder, lessonByKey, studentReleaseCountForGroup } from '../data/lessons'
+import { alphabetOrder, lessonByKey, studentReleaseCountForGroup, studentUsesSequentialUnlockForGroup } from '../data/lessons'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
 import { ProgressRing } from '../components/ProgressRing'
@@ -16,6 +16,7 @@ export function MenuPage() {
   const [pendingLetter, setPendingLetter] = useState<string | null>(null)
   if (!currentStudent) return null
   const pathLength = teacherMode ? alphabetOrder.length : studentReleaseCountForGroup(currentStudent.group)
+  const sequentialUnlock = studentUsesSequentialUnlockForGroup(currentStudent.group)
   const completeCount = alphabetOrder.slice(0, pathLength).filter((letter) => currentStudent.progress[letter]?.completed).length
 
   return (
@@ -51,7 +52,7 @@ export function MenuPage() {
           {alphabetOrder.map((letter, index) => {
             const released = index < pathLength
             const completed = (teacherMode || released) && Boolean(currentStudent.progress[letter as 's' | 'i' | 't']?.completed)
-            const unlocked = index === 0 || alphabetOrder.slice(0, index).every((prior) => currentStudent.progress[prior as 's' | 'i' | 't']?.completed)
+            const unlocked = !sequentialUnlock || index === 0 || alphabetOrder.slice(0, index).every((prior) => currentStudent.progress[prior as 's' | 'i' | 't']?.completed)
             const available = Boolean(lessonByKey[letter])
             const open = teacherMode || (released && unlocked)
             const playable = teacherMode || (released && unlocked && available)
