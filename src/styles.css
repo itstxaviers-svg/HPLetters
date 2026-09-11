@@ -470,6 +470,30 @@ input::placeholder { color: #9c9eb0; }
   .winner-panel .winner-title { width: fit-content; }
 }
 
+/* Mobile Chrome/Android can corrupt compositor tiles when a large fixed
+   background, backdrop blur, a transformed parent and a high-DPI canvas
+   share the same page. Use the safe path on phones and touch tablets. */
+@media (max-width: 780px), (pointer: coarse) {
+  .page-shell { background-attachment: scroll; }
+  .page-content { transform: none !important; }
+  .ambient { display: none; }
+  .status-pill,
+  .hero-badge,
+  .welcome-copy,
+  .menu-hero > div:first-child,
+  .rewards-hero > div:first-child,
+  .dashboard-heading > div:first-child,
+  .parchment-card,
+  .menu-dashboard__main,
+  .letter-section,
+  .round-restart,
+  .modal-backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .trace-path, .trace-start-dot { filter: none; }
+  .trace-panel, .trace-board { isolation: isolate; }
+  .trace-board canvas { contain: strict; }
+  .lesson-page, .lesson-page * { cursor: auto; }
+}
+
 @media (max-width: 780px) {
   .page-content { width: min(100% - 24px, 700px); padding-top: 14px; }
   .welcome-page .page-content { padding: 28px 0; }

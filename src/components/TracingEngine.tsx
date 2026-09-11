@@ -64,8 +64,9 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     context.lineJoin = 'round'
     context.strokeStyle = '#2f5fb4'
     context.lineWidth = Math.max(6, Math.min(width, height) * 0.018)
-    context.shadowColor = 'rgba(139, 184, 255, .7)'
-    context.shadowBlur = 10
+    const mobileSafeRendering = window.matchMedia('(max-width: 780px), (pointer: coarse)').matches
+    context.shadowColor = mobileSafeRendering ? 'transparent' : 'rgba(139, 184, 255, .7)'
+    context.shadowBlur = mobileSafeRendering ? 0 : 10
 
     const allStrokes = [...strokesRef.current, ...(activeStrokeRef.current ? [activeStrokeRef.current] : [])]
     for (const points of allStrokes) {
@@ -125,9 +126,16 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     const observer = new ResizeObserver(([entry]) => {
       const width = entry.contentRect.width
       const height = entry.contentRect.height
-      const dpr = Math.max(1, window.devicePixelRatio || 1)
-      canvas.width = Math.round(width * dpr)
-      canvas.height = Math.round(height * dpr)
+      // A full-resolution canvas can become a very large GPU texture on
+      // Android phones (3x/4x DPR). Combined with the layered lesson UI this
+      // can corrupt whole compositor tiles, not just the drawing surface.
+      const mobileSafeRendering = window.matchMedia('(max-width: 780px), (pointer: coarse)').matches
+      const maxDpr = mobileSafeRendering ? 1.5 : 2
+      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, maxDpr))
+      const pixelWidth = Math.max(1, Math.round(width * dpr))
+      const pixelHeight = Math.max(1, Math.round(height * dpr))
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight
       sizeRef.current = { width, height, dpr }
       draw()
     })
