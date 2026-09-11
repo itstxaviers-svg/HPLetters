@@ -79,6 +79,8 @@ export interface Student {
   name: string
   group: string
   createdAt: string
+  updatedAt?: string
+  cloudUpdatedAt?: string
   progress: Partial<Record<LetterKey, LessonProgress>>
   badges: BadgeAward[]
 }

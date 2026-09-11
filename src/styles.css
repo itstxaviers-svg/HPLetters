@@ -279,6 +279,16 @@ input::placeholder { color: #9c9eb0; }
 .dashboard-heading label { min-width: 190px; }
 .teacher-controls { display: flex; align-items: end; gap: 9px; }
 .teacher-controls .secondary-button { min-height: 46px; white-space: nowrap; }
+.teacher-sync-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -12px 0 17px; padding: 10px 13px; border: 1px solid rgba(101,193,140,.28); border-radius: 14px; background: rgba(246,255,249,.8); color: var(--ink-soft); font-size: 11px; font-weight: 800; }
+.teacher-sync-bar > span { display: flex; align-items: center; gap: 8px; }
+.teacher-sync-bar > span > i { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.teacher-sync-bar--loading > span > i { background: var(--gold); }
+.teacher-sync-bar--error { border-color: rgba(217,120,120,.28); background: rgba(255,244,242,.82); }
+.teacher-sync-bar--error > span > i { background: var(--error); }
+.teacher-sync-bar .secondary-button { min-height: 36px; padding: 0 13px; font-size: 10px; white-space: nowrap; }
+.is-spinning { animation: spin .85s linear infinite; }
+.student-last-active { display: block; margin: -4px 0 12px; color: var(--ink-soft); font-size: 9px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-bottom: 17px; }
 .metric-grid article { display: flex; align-items: center; gap: 13px; padding: 17px; border: 1px solid rgba(255,255,255,.85); border-radius: 18px; background: rgba(255,255,255,.72); }
 .metric-grid article > span { width: 43px; height: 43px; display: grid; place-items: center; border-radius: 13px; color: #85642e; background: #f2e5bd; }
@@ -510,6 +520,8 @@ input::placeholder { color: #9c9eb0; }
   .menu-dashboard__top { align-items: flex-start; flex-direction: column; gap: 10px; }
   .menu-hero > div:first-child, .rewards-hero > div:first-child, .dashboard-heading > div:first-child { width: 100%; }
   .teacher-controls { width: 100%; align-items: stretch; flex-direction: column; }
+  .teacher-sync-bar { align-items: stretch; flex-direction: column; }
+  .teacher-sync-bar .secondary-button { width: 100%; }
   .menu-progress-card { width: 100%; }
   .quick-actions { grid-template-columns: 1fr; }
   .teacher-mode-banner { grid-template-columns: auto 1fr; }

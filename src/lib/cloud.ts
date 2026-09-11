@@ -21,10 +21,11 @@ interface TeacherStudentsResponse {
 const API_BASE = (import.meta.env.VITE_YANDEX_API_URL ?? '').trim().replace(/\/$/, '')
 const STUDENT_SESSION_PREFIX = 'learn_letters_cloud_student_'
 const TEACHER_SESSION_KEY = 'learn_letters_cloud_teacher'
+const studentSyncQueues = new Map<string, Promise<void>>()
 
 export const cloudSyncEnabled = Boolean(API_BASE)
 
-class CloudRequestError extends Error {
+export class CloudRequestError extends Error {
   constructor(message: string, readonly status: number) {
     super(message)
   }
@@ -45,13 +46,20 @@ function readSession(storage: Storage, key: string): CloudSession | null {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!API_BASE) throw new Error('Cloud sync is not configured.')
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
-  })
-  const body = await response.json().catch(() => ({})) as { message?: string }
-  if (!response.ok) throw new CloudRequestError(body.message || `Cloud request failed (${response.status}).`, response.status)
-  return body as T
+  const controller = options.signal ? null : new AbortController()
+  const timeout = controller ? window.setTimeout(() => controller.abort(), 15_000) : null
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal: options.signal ?? controller?.signal,
+      headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+    })
+    const body = await response.json().catch(() => ({})) as { message?: string }
+    if (!response.ok) throw new CloudRequestError(body.message || `Cloud request failed (${response.status}).`, response.status)
+    return body as T
+  } finally {
+    if (timeout !== null) window.clearTimeout(timeout)
+  }
 }
 
 async function ensureStudentSession(student: Student): Promise<CloudSession> {
@@ -66,7 +74,11 @@ async function ensureStudentSession(student: Student): Promise<CloudSession> {
   return response.session
 }
 
-export async function syncStudentCloud(student: Student): Promise<void> {
+export async function connectStudentCloud(student: Student): Promise<void> {
+  await ensureStudentSession(student)
+}
+
+async function sendStudentSnapshot(student: Student): Promise<void> {
   const session = await ensureStudentSession(student)
   try {
     await request<{ ok: true }>('/student/sync', {
@@ -78,6 +90,19 @@ export async function syncStudentCloud(student: Student): Promise<void> {
     if (error instanceof CloudRequestError && error.status === 401) localStorage.removeItem(`${STUDENT_SESSION_PREFIX}${student.id}`)
     throw error
   }
+}
+
+export function syncStudentCloud(student: Student): Promise<void> {
+  // Keep snapshots for one pupil strictly ordered. Without this queue an older,
+  // slower request can finish after a newer one and roll cloud progress back.
+  const snapshot = structuredClone(student)
+  const previous = studentSyncQueues.get(student.id) ?? Promise.resolve()
+  const queued = previous.catch(() => undefined).then(() => sendStudentSnapshot(snapshot))
+  studentSyncQueues.set(student.id, queued)
+  void queued.finally(() => {
+    if (studentSyncQueues.get(student.id) === queued) studentSyncQueues.delete(student.id)
+  }).catch(() => undefined)
+  return queued
 }
 
 export async function loginTeacherCloud(pin: string): Promise<Student[]> {
@@ -92,6 +117,7 @@ export async function loginTeacherCloud(pin: string): Promise<Student[]> {
 export async function fetchTeacherStudentsCloud(session = readSession(sessionStorage, TEACHER_SESSION_KEY)): Promise<Student[]> {
   if (!session) throw new Error('Teacher session expired.')
   const response = await request<TeacherStudentsResponse>('/teacher/students', {
+    cache: 'no-store',
     headers: { Authorization: `Bearer ${session.token}` },
   })
   return response.students

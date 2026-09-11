@@ -6,17 +6,47 @@ import { useApp } from '../context/AppContext'
 import { PageShell } from '../components/PageShell'
 import { Logo } from '../components/Logo'
 
+function studentConnectionError(error: unknown) {
+  const message = error instanceof Error ? error.message : ''
+  if (/class not found/i.test(message)) return 'Class not found. Check the Join Code. (Группа не найдена. Проверьте код класса.)'
+  if (/belongs to another class/i.test(message)) return 'This profile belongs to another class. (Этот профиль относится к другой группе.)'
+  return 'Could not connect to the class. Check the internet and try again. (Не удалось подключиться к группе. Проверьте интернет и повторите.)'
+}
+
 export function WelcomePage() {
-  const { data, registerStudent, selectStudent } = useApp()
+  const { data, registerStudent } = useApp()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [group, setGroup] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [registrationError, setRegistrationError] = useState('')
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (!name.trim() || !group.trim()) return
-    registerStudent(name, group)
-    navigate('/menu')
+    setSubmitting(true)
+    setRegistrationError('')
+    try {
+      await registerStudent(name, group)
+      navigate('/menu')
+    } catch (error) {
+      setRegistrationError(studentConnectionError(error))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const resumeStudent = async (student: (typeof data.students)[number]) => {
+    setSubmitting(true)
+    setRegistrationError('')
+    try {
+      await registerStudent(student.name, student.group)
+      navigate('/menu')
+    } catch (error) {
+      setRegistrationError(studentConnectionError(error))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -39,9 +69,10 @@ export function WelcomePage() {
           <h2><span className="title-en">Start your journey</span><small className="title-ru">(Начни обучение)</small></h2>
           <p>Enter your name and class Join Code. Your progress is saved on this device and, when cloud sync is connected, in the teacher dashboard. (Введи имя и код класса. Прогресс сохранится на устройстве, а после подключения облака — у учителя.)</p>
           <form onSubmit={submit}>
-            <label>Student name (Имя ученика)<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Maya (например, Маша)" autoComplete="name" required /></label>
-            <label>Group / Join Code (Группа / код класса)<input value={group} onChange={(event) => setGroup(event.target.value.toUpperCase())} placeholder="e.g. LETTERS-2A" required /></label>
-            <button className="primary-button" type="submit">Open my spellbook (Открыть книгу) <ArrowRight size={19} /></button>
+            <label>Student name (Имя ученика)<input value={name} onChange={(event) => { setName(event.target.value); setRegistrationError('') }} placeholder="e.g. Maya (например, Маша)" autoComplete="name" required disabled={submitting} /></label>
+            <label>Group / Join Code (Группа / код класса)<input value={group} onChange={(event) => { setGroup(event.target.value.toUpperCase()); setRegistrationError('') }} placeholder="e.g. LETTERS-2A" required disabled={submitting} /></label>
+            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? 'Connecting… (Подключаемся…)' : 'Open my spellbook (Открыть книгу)'} {!submitting && <ArrowRight size={19} />}</button>
+            {registrationError && <span className="form-error" role="alert">{registrationError}</span>}
           </form>
 
           {data.students.length > 0 && (
@@ -49,7 +80,7 @@ export function WelcomePage() {
               <div className="section-divider"><span>or continue (или продолжить)</span></div>
               <div className="profile-chips">
                 {data.students.slice(0, 4).map((student) => (
-                  <button key={student.id} onClick={() => { selectStudent(student.id); navigate('/menu') }}>
+                  <button key={student.id} onClick={() => void resumeStudent(student)} disabled={submitting}>
                     <span>{student.name.slice(0, 1).toUpperCase()}</span><span><strong>{student.name}</strong><small>Group (Группа) {student.group}</small></span>
                   </button>
                 ))}

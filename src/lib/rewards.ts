@@ -1,5 +1,5 @@
 import type { LessonProgress, Student } from '../types'
-import { allAttempts, averageAccuracy, completedLetters } from './scoring'
+import { allAttempts, averageAccuracy, completedLetters, currentRoundAttempts } from './scoring'
 import { lessons } from '../data/lessons'
 
 export function earnedBadgeIds(student: Student): string[] {
@@ -10,7 +10,8 @@ export function earnedBadgeIds(student: Student): string[] {
 
   if (attempts.length >= 3 && averageAccuracy(student) >= 92) earned.add('golden-quill')
   if (progresses.some((progress) => progress.uppercase.completed && progress.lowercase.completed
-    && progress.uppercase.attempts.length === 3 && progress.lowercase.attempts.length === 3)) earned.add('first-try')
+    && currentRoundAttempts(progress.uppercase).length === 3
+    && currentRoundAttempts(progress.lowercase).length === 3)) earned.add('first-try')
   if (progresses.some((progress) => [...progress.uppercase.attempts, ...progress.lowercase.attempts]
     .some((attempt) => attempt.success && attempt.accuracy >= 95))) earned.add('perfect-letter')
   if (progresses.some((progress) => [...progress.uppercase.attempts, ...progress.lowercase.attempts]

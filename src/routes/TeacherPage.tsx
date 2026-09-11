@@ -1,28 +1,49 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Award, BarChart3, ChevronDown, ChevronUp, Crown, LockKeyhole, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { Award, BarChart3, ChevronDown, ChevronUp, Crown, LockKeyhole, RefreshCw, ShieldCheck, Sparkles, Users } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { allAttempts, averageAccuracy, competitionScore, completedLetters, completionPercent, isTrueTie, rankStudents } from '../lib/scoring'
+import { allAttempts, averageAccuracy, classAverageAccuracy, competitionScore, completedAssignedLetters, completionPercent, isTrueTie, latestActivityAt, rankStudents } from '../lib/scoring'
+import { alphabetOrder } from '../data/lessons'
 import { badges } from '../data/badges'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
 import trophy from '../assets/rewards/trophy-class-winner.webp'
 
 export function TeacherPage() {
-  const { data, currentStudent, teacherMode, enterTeacherMode } = useApp()
+  const { data, currentStudent, teacherMode, teacherStudents, teacherDataStatus, teacherLastUpdatedAt, cloudSyncEnabled, enterTeacherMode, refreshTeacherStudents } = useApp()
   const navigate = useNavigate()
   const [unlocked, setUnlocked] = useState(teacherMode)
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
-  const [group, setGroup] = useState(data.students[0]?.group ?? 'All groups')
+  const [group, setGroup] = useState('All groups')
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  const groups = useMemo(() => [...new Set(data.students.map((student) => student.group))], [data.students])
-  const visibleStudents = group === 'All groups' ? data.students : data.students.filter((student) => student.group === group)
+  const dashboardStudents = useMemo(() => cloudSyncEnabled ? (teacherStudents ?? []) : data.students, [cloudSyncEnabled, teacherStudents, data.students])
+  const groups = useMemo(() => [...new Set(dashboardStudents.map((student) => student.group))], [dashboardStudents])
+  const visibleStudents = group === 'All groups' ? dashboardStudents : dashboardStudents.filter((student) => student.group === group)
   const ranked = rankStudents(visibleStudents)
   const hasCompetition = ranked.some((student) => allAttempts(student).length > 0)
   const tie = hasCompetition && isTrueTie(ranked[0], ranked[1])
   const winner = hasCompetition && !tie ? ranked[0] : undefined
+
+  useEffect(() => {
+    if (unlocked && cloudSyncEnabled && teacherDataStatus === 'idle') void refreshTeacherStudents()
+  }, [unlocked, cloudSyncEnabled, teacherDataStatus, refreshTeacherStudents])
+
+  useEffect(() => {
+    if (!unlocked || !cloudSyncEnabled) return
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshTeacherStudents()
+    }
+    const timer = window.setInterval(refreshWhenVisible, 15_000)
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [unlocked, cloudSyncEnabled, refreshTeacherStudents])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -30,7 +51,7 @@ export function TeacherPage() {
     else setError(true)
   }
 
-  if (!unlocked) {
+  if (!unlocked || !teacherMode) {
     return (
       <PageShell variant="teacher">
         <TopBar backTo={currentStudent ? '/menu' : '/'} backLabel="Student area (Для ученика)" minimal />
@@ -46,7 +67,21 @@ export function TeacherPage() {
     )
   }
 
-  if (!data.students.length) {
+  if (cloudSyncEnabled && teacherStudents === null) {
+    return (
+      <PageShell variant="teacher">
+        <TopBar backTo={currentStudent ? '/menu' : '/'} backLabel="Student area (Для ученика)" minimal />
+        <section className="teacher-gate parchment-card">
+          <span className="gate-icon"><RefreshCw className={teacherDataStatus === 'loading' ? 'is-spinning' : ''} /></span>
+          <h1><span className="title-en">{teacherDataStatus === 'error' ? 'Cloud data unavailable' : 'Loading class progress'}</span><small className="title-ru">{teacherDataStatus === 'error' ? '(Не удалось загрузить данные)' : '(Загружаем прогресс класса)'}</small></h1>
+          <p>{teacherDataStatus === 'error' ? 'Check the connection and try again. Local student progress remains safe. (Проверьте интернет и повторите. Локальный прогресс учеников сохранён.)' : 'One moment… (Один момент…)'}</p>
+          {teacherDataStatus === 'error' && <button className="primary-button" onClick={() => void refreshTeacherStudents()}><RefreshCw /> Retry (Повторить)</button>}
+        </section>
+      </PageShell>
+    )
+  }
+
+  if (!dashboardStudents.length) {
     return (
       <PageShell variant="teacher">
         <TopBar backTo="/" backLabel="Registration (Регистрация)" minimal />
@@ -55,8 +90,8 @@ export function TeacherPage() {
     )
   }
 
-  const totalCompleted = visibleStudents.reduce((sum, student) => sum + completedLetters(student), 0)
-  const classAccuracy = visibleStudents.length ? visibleStudents.reduce((sum, student) => sum + averageAccuracy(student), 0) / visibleStudents.length : 0
+  const totalCompleted = visibleStudents.reduce((sum, student) => sum + completedAssignedLetters(student), 0)
+  const classAccuracy = classAverageAccuracy(visibleStudents)
 
   return (
     <PageShell variant="teacher">
@@ -68,6 +103,15 @@ export function TeacherPage() {
           {currentStudent && <button className="secondary-button" onClick={() => navigate('/menu')}>Check letters (Проверить буквы)</button>}
         </div>
       </section>
+
+      {cloudSyncEnabled && <div className={`teacher-sync-bar teacher-sync-bar--${teacherDataStatus}`}>
+        <span><i />{teacherDataStatus === 'error'
+          ? 'Could not refresh • showing last loaded data (Не удалось обновить • показаны последние данные)'
+          : teacherDataStatus === 'loading'
+            ? 'Updating from cloud… (Обновляем из облака…)'
+            : `Cloud data updated${teacherLastUpdatedAt ? ` at ${new Date(teacherLastUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''} (Данные из облака обновлены)`}</span>
+        <button className="secondary-button" onClick={() => void refreshTeacherStudents()} disabled={teacherDataStatus === 'loading'}><RefreshCw className={teacherDataStatus === 'loading' ? 'is-spinning' : ''} /> Refresh (Обновить)</button>
+      </div>}
 
       <section className="metric-grid">
         <article><span><Users /></span><div><small>Students (Ученики)</small><strong>{visibleStudents.length}</strong></div></article>
@@ -87,14 +131,14 @@ export function TeacherPage() {
                 <div className="student-record" key={student.id}>
                   <button className="student-row" onClick={() => setExpanded(isExpanded ? null : student.id)}>
                     <span className="student-identity"><i>{index + 1}</i><b>{student.name.slice(0, 1).toUpperCase()}</b><span><strong>{student.name}</strong><small>Group (Группа) {student.group}</small></span>{winner?.id === student.id && <Crown className="winner-crown" />}</span>
-                    <span><strong>{completedLetters(student)} letters (букв)</strong><small>{completionPercent(student)}% of alphabet (алфавита)</small></span>
+                    <span><strong>{completedAssignedLetters(student)} letters (букв)</strong><small>{completionPercent(student)}% of current path (текущего курса)</small></span>
                     <span><strong>{Math.round(averageAccuracy(student))}%</strong><small>successful tries (успешные попытки)</small></span>
                     <span><strong>{competitionScore(student).toFixed(1)}</strong><small>competition (рейтинг)</small></span>
                     <span>{isExpanded ? <ChevronUp /> : <ChevronDown />}</span>
                   </button>
                   {isExpanded && (
                     <div className="student-detail">
-                      <div><h3>Letter breakdown (По буквам)</h3>{Object.values(student.progress).filter(Boolean).map((progress) => <p key={progress!.letter}><strong>{progress!.letter.toUpperCase()}</strong><span>Uppercase (Заглавная) {progress!.uppercase.bestAccuracy}%</span><span>Lowercase (Строчная) {progress!.lowercase.bestAccuracy}%</span><span>{progress!.uppercase.attempts.length + progress!.lowercase.attempts.length} attempts (попыток)</span></p>)}</div>
+                      <div><h3>Letter breakdown (По буквам)</h3><small className="student-last-active">Last activity (Последняя активность): {latestActivityAt(student) ? new Date(latestActivityAt(student)!).toLocaleString() : '—'}</small>{alphabetOrder.map((letter) => student.progress[letter]).filter(Boolean).map((progress) => <p key={progress!.letter}><strong>{progress!.letter.toUpperCase()}</strong><span>Uppercase (Заглавная) {progress!.uppercase.bestAccuracy}%</span><span>Lowercase (Строчная) {progress!.lowercase.bestAccuracy}%</span><span>{progress!.uppercase.attempts.length + progress!.lowercase.attempts.length} attempts (попыток)</span></p>)}</div>
                       <div><h3>Earned rewards (Награды)</h3><div className="mini-badges">{student.badges.length ? student.badges.map((award) => { const badge = badges.find((item) => item.id === award.badgeId); return badge && <span key={award.badgeId}><img src={badge.image} alt="" />{badge.title}</span> }) : <small>No badges yet — the first one is close. (Наград пока нет — первая уже близко.)</small>}</div></div>
                     </div>
                   )}
