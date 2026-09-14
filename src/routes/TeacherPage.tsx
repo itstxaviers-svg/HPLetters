@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Award, BarChart3, ChevronDown, ChevronUp, Crown, LockKeyhole, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react'
+import { Award, BarChart3, ChevronDown, ChevronUp, Crown, Eye, EyeOff, LockKeyhole, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { averageAccuracy, classAverageAccuracy, competitionScore, completedAssignedLetters, completionPercent, isTrueTie, latestActivityAt, rankStudents } from '../lib/scoring'
 import { alphabetOrder } from '../data/lessons'
@@ -14,6 +14,7 @@ export function TeacherPage() {
   const navigate = useNavigate()
   const [unlocked, setUnlocked] = useState(teacherMode)
   const [pin, setPin] = useState('')
+  const [showPin, setShowPin] = useState(true)
   const [error, setError] = useState(false)
   const [group, setGroup] = useState('All groups')
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -93,7 +94,15 @@ export function TeacherPage() {
           <span className="card-kicker">Grown-ups only (Только для взрослых)</span>
           <h1><span className="title-en">Teacher area</span><small className="title-ru">(Кабинет учителя)</small></h1>
           <p>Enter the teacher PIN to view student progress. (Введите PIN учителя, чтобы увидеть прогресс учеников.)</p>
-          <form onSubmit={submit}><input value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 8)); setError(false) }} inputMode="numeric" placeholder="••••••••" aria-label="Teacher PIN (PIN учителя)" autoFocus /><button className="primary-button">Unlock dashboard (Открыть кабинет)</button></form>
+          <form onSubmit={submit}>
+            <div className="pin-input-wrap">
+              <input type={showPin ? 'text' : 'password'} value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 8)); setError(false) }} inputMode="numeric" autoComplete="current-password" placeholder="Enter PIN (Введите PIN)" aria-label="Teacher PIN (PIN учителя)" autoFocus />
+              <button type="button" className="pin-visibility-button" onClick={() => setShowPin((visible) => !visible)} aria-label={showPin ? 'Hide PIN (Скрыть PIN)' : 'Show PIN (Показать PIN)'} title={showPin ? 'Hide PIN (Скрыть PIN)' : 'Show PIN (Показать PIN)'}>
+                {showPin ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
+            <button className="primary-button">Unlock dashboard (Открыть кабинет)</button>
+          </form>
           {error && <span className="form-error">That PIN did not match. Try again. (Неверный PIN. Попробуйте ещё раз.)</span>}
         </section>
       </PageShell>

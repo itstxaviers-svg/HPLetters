@@ -275,6 +275,11 @@ input::placeholder { color: #9c9eb0; }
 .gate-icon { width: 70px; height: 70px; display: grid; place-items: center; margin: -76px auto 22px; border: 7px solid rgba(255,255,255,.55); border-radius: 50%; color: white; background: var(--indigo); }
 .teacher-gate form { display: grid; gap: 11px; margin-top: 23px; }
 .teacher-gate input { font-size: 22px; font-weight: 900; letter-spacing: .32em; text-align: center; }
+.pin-input-wrap { position: relative; }
+.pin-input-wrap input { margin-top: 0; padding-right: 50px; }
+.pin-visibility-button { position: absolute; top: 50%; right: 8px; width: 38px; height: 38px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 10px; color: var(--ink-soft); background: transparent; cursor: pointer; transform: translateY(-50%); }
+.pin-visibility-button:hover { color: var(--royal); background: rgba(47,95,180,.08); }
+.pin-visibility-button svg { width: 19px; }
 .form-error { display: block; margin-top: 12px; color: #ad4e4e; font-size: 12px; font-weight: 800; }
 .dashboard-heading label { min-width: 190px; }
 .teacher-controls { display: flex; align-items: end; gap: 9px; }
