@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Award, Check, ChevronRight, LockKeyhole, LogOut, ShieldCheck, Sparkles } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { alphabetOrder, lessonByKey, studentReleaseCountForGroup, studentUsesSequentialUnlockForGroup } from '../data/lessons'
+import { alphabetOrder, lessonByKey, studentLessonIsOpenForGroup, studentReleaseCountForGroup } from '../data/lessons'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
 import { ProgressRing } from '../components/ProgressRing'
@@ -16,8 +16,8 @@ export function MenuPage() {
   const [pendingLetter, setPendingLetter] = useState<string | null>(null)
   if (!currentStudent) return null
   const pathLength = teacherMode ? alphabetOrder.length : studentReleaseCountForGroup(currentStudent.group)
-  const sequentialUnlock = studentUsesSequentialUnlockForGroup(currentStudent.group)
   const completeCount = alphabetOrder.slice(0, pathLength).filter((letter) => currentStudent.progress[letter]?.completed).length
+  const completionPercent = pathLength > 0 ? Math.round((completeCount / pathLength) * 100) : 0
 
   return (
     <PageShell className="menu-page">
@@ -33,8 +33,8 @@ export function MenuPage() {
         </div>
         <div className="menu-dashboard__side">
           <div className="menu-progress-card">
-            <ProgressRing value={Math.round((completeCount / pathLength) * 100)} label="current path (текущий путь)" />
-            <div><strong>{completeCount} of {pathLength} (из {pathLength})</strong><span>letters mastered (букв изучено)</span><small>Group (Группа) {currentStudent.group}</small></div>
+            <ProgressRing value={completionPercent} label="current path (текущий путь)" />
+            <div><strong>{completeCount} of {pathLength} (из {pathLength})</strong><span>{pathLength > 0 ? 'letters mastered (букв изучено)' : 'Lessons are not open yet (Уроки пока закрыты)'}</span><small>Group (Группа) {currentStudent.group}</small></div>
           </div>
           <nav className="quick-actions quick-actions--compact" aria-label="Student actions (Действия ученика)">
             <button onClick={() => navigate('/rewards')}><span className="quick-icon quick-icon--gold"><Award /></span><span><strong>My rewards (Мои награды)</strong><small>Magical collection (Коллекция)</small></span><ChevronRight /></button>
@@ -51,11 +51,11 @@ export function MenuPage() {
         <motion.div className="letter-grid" initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.025 } } }}>
           {alphabetOrder.map((letter, index) => {
             const released = index < pathLength
-            const completed = (teacherMode || released) && Boolean(currentStudent.progress[letter as 's' | 'i' | 't']?.completed)
-            const unlocked = !sequentialUnlock || index === 0 || alphabetOrder.slice(0, index).every((prior) => currentStudent.progress[prior as 's' | 'i' | 't']?.completed)
+            const completed = (teacherMode || released) && Boolean(currentStudent.progress[letter]?.completed)
+            const previousLessonsComplete = alphabetOrder.slice(0, index).every((prior) => currentStudent.progress[prior]?.completed)
             const available = Boolean(lessonByKey[letter])
-            const open = teacherMode || (released && unlocked)
-            const playable = teacherMode || (released && unlocked && available)
+            const open = teacherMode || studentLessonIsOpenForGroup(currentStudent.group, index, previousLessonsComplete)
+            const playable = open && available
             return (
               <motion.button
                 variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}

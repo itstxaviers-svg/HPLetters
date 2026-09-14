@@ -70,7 +70,7 @@ export function WelcomePage() {
           <p>Enter your name and class Join Code. Your progress is saved on this device and, when cloud sync is connected, in the teacher dashboard. (Введи имя и код класса. Прогресс сохранится на устройстве, а после подключения облака — у учителя.)</p>
           <form onSubmit={submit}>
             <label>Student name (Имя ученика)<input value={name} onChange={(event) => { setName(event.target.value); setRegistrationError('') }} placeholder="e.g. Maya (например, Маша)" autoComplete="name" required disabled={submitting} /></label>
-            <label>Group / Join Code (Группа / код класса)<input value={group} onChange={(event) => { setGroup(event.target.value.toUpperCase()); setRegistrationError('') }} placeholder="e.g. LETTERS-2A" required disabled={submitting} /></label>
+            <label>Group / Join Code (Группа / код класса)<input value={group} onChange={(event) => { setGroup(event.target.value.toUpperCase()); setRegistrationError('') }} placeholder="e.g. 14, 15, 16 or 11-12" autoCapitalize="characters" autoCorrect="off" maxLength={24} required disabled={submitting} /></label>
             <button className="primary-button" type="submit" disabled={submitting}>{submitting ? 'Connecting… (Подключаемся…)' : 'Open my spellbook (Открыть книгу)'} {!submitting && <ArrowRight size={19} />}</button>
             {registrationError && <span className="form-error" role="alert">{registrationError}</span>}
           </form>

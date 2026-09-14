@@ -3,7 +3,8 @@
 ## Current class release plan
 
 - Group `14`: letters are released in order through `Hh` (16 letters).
-- Groups `15` and `16`: the first two letters are currently released (`Ss`, then `Ii`).
+- Group `15`: all lessons are currently closed.
+- Group `16`: the first five letters are open (`Ss`, `Ii`, `Tt`, `Pp`, `Aa`).
 - Combined group `11-12`: the full alphabet is available as a sequential path; each next letter opens only after the previous letter is completed.
 - Teacher test mode keeps every letter open and never changes a child's saved progress.
 

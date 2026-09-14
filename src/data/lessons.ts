@@ -1,4 +1,7 @@
 import type { LetterKey, TraceLessonConfig, TraceSegment, TraceStageConfig } from '../types'
+import { classroomPolicyForGroup } from './classroomPolicy'
+
+export { studentLessonIsOpenForGroup } from './classroomPolicy'
 
 export const alphabetOrder = [
   's', 'i', 't', 'p', 'a', 'n', 'm', 'd', 'g', 'o',
@@ -11,21 +14,16 @@ export const studentReleaseCount = alphabetOrder.indexOf(studentReleaseThrough) 
 
 /**
  * Current classroom release plan.
- * Unknown/legacy groups keep the original path through H so existing profiles
- * are never unexpectedly locked out.
+ * Unknown or mistyped groups stay locked so a saved legacy profile cannot
+ * accidentally receive lessons assigned to another class.
  */
 export function studentReleaseCountForGroup(group: string): number {
-  const key = group.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
-  if (key === '15' || key === 'learnletters15') return 2
-  if (key === '16' || key === 'learnletters16') return 5
-  if (key === '1112' || key === 'learnletters1112') return alphabetOrder.length
-  return studentReleaseCount
+  return classroomPolicyForGroup(group).releaseCount
 }
 
 /** Groups 14 and 11-12 advance one completed letter at a time. */
 export function studentUsesSequentialUnlockForGroup(group: string): boolean {
-  const key = group.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
-  return key === '14' || key === 'learnletters14' || key === '1112' || key === 'learnletters1112'
+  return classroomPolicyForGroup(group).sequential
 }
 
 const shared = {

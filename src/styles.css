@@ -379,9 +379,60 @@ input::placeholder { color: #9c9eb0; }
 
 @media (min-width: 1021px) and (max-height: 700px) {
   .welcome-page .feature-row { display: none; }
-  .welcome-page .welcome-copy h1 { font-size: clamp(40px, 7vh, 50px); }
-  .welcome-page .welcome-copy > p { font-size: 14px; }
-  .welcome-page .registration-card { padding-top: 22px; padding-bottom: 16px; }
+  .welcome-page .welcome-copy h1 { font-size: clamp(34px, 6.2vh, 44px); }
+  .welcome-page .welcome-copy > p { font-size: 12px; }
+}
+
+/* The entry screen must fit inside a projector/browser viewport without a
+   vertical scrollbar. Saved profiles stay visible, but the decorative copy
+   becomes denser as the available height gets smaller. */
+@media (min-width: 1021px) and (max-height: 820px) {
+  .welcome-page .page-content {
+    width: min(1240px, calc(100% - 24px));
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .welcome-page .welcome-layout {
+    grid-template-columns: 1.08fr .92fr;
+    gap: clamp(16px, 2.5vw, 32px);
+  }
+  .welcome-page .welcome-copy { padding: 16px 18px; }
+  .welcome-page .brand { gap: 10px; }
+  .welcome-page .brand img { width: 62px; height: 62px; }
+  .welcome-page .brand strong { font-size: clamp(27px, 2.7vw, 34px); }
+  .welcome-page .welcome-copy > .hero-badge { margin: 8px 0; padding: 6px 10px; font-size: 10px; }
+  .welcome-page .welcome-copy h1 { margin-bottom: 8px; font-size: clamp(34px, 6.2vh, 48px); }
+  .welcome-page .welcome-copy h1 small { margin-top: 5px; font-size: 13px; }
+  .welcome-page .welcome-copy > p { font-size: 12px; line-height: 1.35; }
+  .welcome-page .feature-row { display: none; }
+
+  .welcome-page .registration-card { padding: 16px 22px 12px; }
+  .welcome-page .registration-card .card-kicker { margin-bottom: 4px; font-size: 9px; }
+  .welcome-page .registration-card h2 { margin-bottom: 5px; font-size: 27px; }
+  .welcome-page .registration-card > p { font-size: 12px; line-height: 1.32; }
+  .welcome-page .registration-card form { gap: 8px; margin-top: 11px; }
+  .welcome-page .registration-card label { font-size: 10px; }
+  .welcome-page .registration-card input { margin-top: 3px; padding: 8px 10px; }
+  .welcome-page .registration-card .primary-button { min-height: 40px; }
+  .welcome-page .form-error { margin-top: 4px; font-size: 10px; line-height: 1.2; }
+  .welcome-page .section-divider { margin: 8px 0 6px; font-size: 9px; }
+  .welcome-page .profile-chips { gap: 5px; }
+  .welcome-page .profile-chips button { min-width: 0; padding: 4px 6px; }
+  .welcome-page .profile-chips button > span:first-child { width: 28px; height: 28px; }
+  .welcome-page .profile-chips button > span:last-child { min-width: 0; }
+  .welcome-page .profile-chips strong,
+  .welcome-page .profile-chips small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+  .welcome-page .teacher-entry { margin-top: 3px; padding: 5px; font-size: 10px; }
+}
+
+@media (min-width: 1021px) and (max-height: 610px) {
+  .welcome-page .welcome-copy > p { display: none; }
+  .welcome-page .welcome-copy h1 { margin-bottom: 0; }
+  .welcome-page .registration-card { padding-top: 11px; padding-bottom: 8px; }
+  .welcome-page .registration-card > p { font-size: 10px; line-height: 1.2; }
+  .welcome-page .registration-card form { gap: 5px; margin-top: 7px; }
+  .welcome-page .registration-card input { padding-top: 6px; padding-bottom: 6px; }
+  .welcome-page .registration-card .primary-button { min-height: 36px; }
 }
 
 /* Wide projectors often have plenty of width but only 600–760 px of usable

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { RotateCcw, Volume2, VolumeX, WandSparkles } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { alphabetOrder, lessonByKey, studentReleaseCountForGroup, studentUsesSequentialUnlockForGroup } from '../data/lessons'
+import { alphabetOrder, lessonByKey, studentLessonIsOpenForGroup, studentReleaseCountForGroup } from '../data/lessons'
 import type { StageKind } from '../types'
 import { PageShell } from '../components/PageShell'
 import { TopBar } from '../components/TopBar'
@@ -34,11 +34,11 @@ export function LessonPage() {
   if (!currentStudent) return <Navigate to="/" replace />
   if (!lesson) return <Navigate to="/menu" replace />
   const releaseCount = studentReleaseCountForGroup(currentStudent.group)
-  const sequentialUnlock = studentUsesSequentialUnlockForGroup(currentStudent.group)
+  const hasNextReleasedLetter = lesson.order + 1 < releaseCount
   const previousLettersComplete = alphabetOrder
     .slice(0, lesson.order)
     .every((previousLetter) => currentStudent.progress[previousLetter]?.completed)
-  if (!teacherMode && (lesson.order >= releaseCount || (sequentialUnlock && !previousLettersComplete))) return <Navigate to="/menu" replace />
+  if (!teacherMode && !studentLessonIsOpenForGroup(currentStudent.group, lesson.order, previousLettersComplete)) return <Navigate to="/menu" replace />
 
   const handleResult = (accuracy: number, success: boolean) => {
     setFeedback({ accuracy, success })
@@ -109,7 +109,9 @@ export function LessonPage() {
           <img src={chestOpen} alt="Open reward chest" />
           <span className="card-kicker">Letter mastered (Буква изучена)</span>
           <h2>Wonderful work, {currentStudent.name}! (Отличная работа!)</h2>
-          <p>You completed uppercase <strong>{lesson.uppercase.label}</strong> and lowercase <strong>{lesson.lowercase.label}</strong>. The next letter is now waiting for you. (Ты завершил(а) заглавную и строчную буквы. Следующая буква уже доступна.)</p>
+          <p>You completed uppercase <strong>{lesson.uppercase.label}</strong> and lowercase <strong>{lesson.lowercase.label}</strong>. {hasNextReleasedLetter
+            ? 'The next letter is now waiting for you. (Следующая буква уже доступна.)'
+            : 'You have completed every lesson currently open for your group. (Ты прошёл/прошла все уроки, открытые сейчас для твоей группы.)'}</p>
           <div className="completion-actions"><button className="secondary-button" onClick={() => navigate('/rewards')}>See rewards (Награды)</button><button className="primary-button" onClick={() => navigate('/menu')}>Continue journey (Продолжить)</button></div>
         </div>
       </Modal>
