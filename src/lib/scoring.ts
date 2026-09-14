@@ -1,29 +1,8 @@
-import type { Attempt, LessonProgress, StageProgress, Student } from '../types'
+import type { Attempt, LessonProgress, Student } from '../types'
 import { alphabetOrder, lessons, studentReleaseCountForGroup } from '../data/lessons'
+import { stageCompetitionScore } from './rating'
 
-export function currentRoundAttempts(stage: StageProgress): Attempt[] {
-  return stage.attempts.slice(stage.roundStartIndex ?? 0)
-}
-
-export function successfulAttempts(stage: StageProgress): Attempt[] {
-  return currentRoundAttempts(stage).filter((attempt) => attempt.success).slice(0, 3)
-}
-
-export function stageCompetitionScore(stage: StageProgress): number {
-  const successful = successfulAttempts(stage)
-  if (!successful.length) return 0
-
-  const average = successful.reduce((sum, attempt) => sum + attempt.accuracy, 0) / successful.length
-  const completionRatio = successful.length / 3
-  const currentRound = currentRoundAttempts(stage)
-  const thirdSuccessIndex = currentRound.findIndex((attempt, index) => attempt.success
-    && currentRound.slice(0, index + 1).filter((item) => item.success).length === 3)
-  const attemptsToQualify = thirdSuccessIndex >= 0 ? thirdSuccessIndex + 1 : currentRound.length
-  const firstTryBonus = successful.length === 3 && attemptsToQualify === 3 ? 3 : 0
-  const extraAttemptPenalty = Math.max(0, attemptsToQualify - 3) * 1.5
-
-  return Math.max(0, (average + firstTryBonus - extraAttemptPenalty) * completionRatio)
-}
+export { currentRoundAttempts, stageCompetitionScore, successfulAttempts } from './rating'
 
 export function lessonCompetitionScore(progress: LessonProgress): number {
   return (stageCompetitionScore(progress.uppercase) + stageCompetitionScore(progress.lowercase)) / 2
@@ -70,29 +49,17 @@ export function competitionScore(student: Student): number {
   return stageTotal + completionWeight
 }
 
-export function cleanCompletedLetters(student: Student): number {
-  return Object.values(student.progress).filter((progress) => progress?.completed
-    && currentRoundAttempts(progress.uppercase).length === 3
-    && currentRoundAttempts(progress.lowercase).length === 3).length
-}
-
 export function rankStudents(students: Student[]): Student[] {
   return [...students].sort((a, b) => {
     const scoreDiff = competitionScore(b) - competitionScore(a)
     if (Math.abs(scoreDiff) > 0.001) return scoreDiff
-    const accuracyDiff = averageAccuracy(b) - averageAccuracy(a)
-    if (Math.abs(accuracyDiff) > 0.001) return accuracyDiff
-    const cleanDiff = cleanCompletedLetters(b) - cleanCompletedLetters(a)
-    if (cleanDiff !== 0) return cleanDiff
-    return a.createdAt.localeCompare(b.createdAt)
+    return a.name.localeCompare(b.name)
   })
 }
 
 export function isTrueTie(a?: Student, b?: Student): boolean {
   if (!a || !b) return false
   return Math.abs(competitionScore(a) - competitionScore(b)) < 0.001
-    && Math.abs(averageAccuracy(a) - averageAccuracy(b)) < 0.001
-    && cleanCompletedLetters(a) === cleanCompletedLetters(b)
 }
 
 export function completionPercent(student: Student): number {

@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:policy": "node scripts/verify-classroom-policy.mjs",
+    "test:rating": "node scripts/verify-rating.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

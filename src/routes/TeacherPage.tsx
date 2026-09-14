@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Award, BarChart3, ChevronDown, ChevronUp, Crown, LockKeyhole, RefreshCw, ShieldCheck, Sparkles, Users } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { allAttempts, averageAccuracy, classAverageAccuracy, competitionScore, completedAssignedLetters, completionPercent, isTrueTie, latestActivityAt, rankStudents } from '../lib/scoring'
+import { averageAccuracy, classAverageAccuracy, competitionScore, completedAssignedLetters, completionPercent, isTrueTie, latestActivityAt, rankStudents } from '../lib/scoring'
 import { alphabetOrder } from '../data/lessons'
 import { badges } from '../data/badges'
 import { PageShell } from '../components/PageShell'
@@ -22,7 +22,7 @@ export function TeacherPage() {
   const groups = useMemo(() => [...new Set(dashboardStudents.map((student) => student.group))], [dashboardStudents])
   const visibleStudents = group === 'All groups' ? dashboardStudents : dashboardStudents.filter((student) => student.group === group)
   const ranked = rankStudents(visibleStudents)
-  const hasCompetition = ranked.some((student) => allAttempts(student).length > 0)
+  const hasCompetition = ranked.some((student) => competitionScore(student) > 0)
   const tie = hasCompetition && isTrueTie(ranked[0], ranked[1])
   const winner = hasCompetition && !tie ? ranked[0] : undefined
 
@@ -122,7 +122,7 @@ export function TeacherPage() {
 
       <section className="dashboard-grid">
         <article className="dashboard-panel ranking-panel">
-          <div className="panel-heading"><div><span className="card-kicker">Honest ranking (Честный рейтинг)</span><h2><span className="title-en">Student progress</span><small className="title-ru">(Прогресс учеников)</small></h2></div><small>Quality + early success (Качество + быстрый успех)</small></div>
+          <div className="panel-heading"><div><span className="card-kicker">Honest ranking (Честный рейтинг)</span><h2><span className="title-en">Student progress</span><small className="title-ru">(Прогресс учеников)</small></h2></div><small>Progress + accuracy (Прогресс + точность)</small></div>
           <div className="student-table">
             <div className="student-row student-row--header"><span>Rank / student (Место / ученик)</span><span>Progress (Прогресс)</span><span>Accuracy (Точность)</span><span>Score (Баллы)</span><span /></div>
             {ranked.map((student, index) => {
@@ -138,7 +138,7 @@ export function TeacherPage() {
                   </button>
                   {isExpanded && (
                     <div className="student-detail">
-                      <div><h3>Letter breakdown (По буквам)</h3><small className="student-last-active">Last activity (Последняя активность): {latestActivityAt(student) ? new Date(latestActivityAt(student)!).toLocaleString() : '—'}</small>{alphabetOrder.map((letter) => student.progress[letter]).filter(Boolean).map((progress) => <p key={progress!.letter}><strong>{progress!.letter.toUpperCase()}</strong><span>Uppercase (Заглавная) {progress!.uppercase.bestAccuracy}%</span><span>Lowercase (Строчная) {progress!.lowercase.bestAccuracy}%</span><span>{progress!.uppercase.attempts.length + progress!.lowercase.attempts.length} attempts (попыток)</span></p>)}</div>
+                      <div><h3>Letter breakdown (По буквам)</h3><small className="student-last-active">Last activity (Последняя активность): {latestActivityAt(student) ? new Date(latestActivityAt(student)!).toLocaleString() : '—'}</small>{alphabetOrder.map((letter) => student.progress[letter]).filter(Boolean).map((progress) => <p key={progress!.letter}><strong>{progress!.letter.toUpperCase()}</strong><span>Uppercase (Заглавная) {progress!.uppercase.bestAccuracy}%</span><span>Lowercase (Строчная) {progress!.lowercase.bestAccuracy}%</span><span>{progress!.completed ? 'Mastered (Изучено)' : 'In progress (В процессе)'}</span></p>)}</div>
                       <div><h3>Earned rewards (Награды)</h3><div className="mini-badges">{student.badges.length ? student.badges.map((award) => { const badge = badges.find((item) => item.id === award.badgeId); return badge && <span key={award.badgeId}><img src={badge.image} alt="" />{badge.title}</span> }) : <small>No badges yet — the first one is close. (Наград пока нет — первая уже близко.)</small>}</div></div>
                     </div>
                   )}
@@ -150,7 +150,7 @@ export function TeacherPage() {
 
         <aside className="winner-panel">
           <span className="card-kicker">Class distinction (Лидер класса)</span>
-          {tie ? <><div className="winner-glow"><ShieldCheck /></div><h2>Teacher tie-break needed (Нужен дополнительный раунд)</h2><p>The leading students are equal on score, accuracy, and clean completions. Run a short supervised tracing round. (У лидеров равные результаты. Проведите короткий дополнительный раунд.)</p></> : winner ? <><img src={trophy} alt="Class winner trophy" /><h2>{winner.name}</h2><span className="winner-title"><Crown /> Current class leader (Лидер класса)</span><p>{competitionScore(winner).toFixed(1)} points with {Math.round(averageAccuracy(winner))}% average accuracy. ({competitionScore(winner).toFixed(1)} баллов, средняя точность {Math.round(averageAccuracy(winner))}%.)</p></> : <><div className="winner-glow"><Crown /></div><h2>No leader yet (Лидера пока нет)</h2><p>Complete a lesson to begin the ranking. (Рейтинг появится после первого урока.)</p></>}
+          {tie ? <><div className="winner-glow"><ShieldCheck /></div><h2>Equal rating (Одинаковый рейтинг)</h2><p>The leading students currently have the same rating. (У лидирующих учеников сейчас одинаковый рейтинг.)</p></> : winner ? <><img src={trophy} alt="Class winner trophy" /><h2>{winner.name}</h2><span className="winner-title"><Crown /> Current class leader (Лидер класса)</span><p>{competitionScore(winner).toFixed(1)} points with {Math.round(averageAccuracy(winner))}% average accuracy. ({competitionScore(winner).toFixed(1)} баллов, средняя точность {Math.round(averageAccuracy(winner))}%.)</p></> : <><div className="winner-glow"><Crown /></div><h2>No leader yet (Лидера пока нет)</h2><p>Complete a lesson to begin the ranking. (Рейтинг появится после первого урока.)</p></>}
         </aside>
       </section>
     </PageShell>

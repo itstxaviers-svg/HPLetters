@@ -33,6 +33,9 @@ jobs:
       - name: Verify classroom access rules
         run: npm run test:policy
 
+      - name: Verify teacher rating
+        run: npm run test:rating
+
       - name: Build application
         run: npm run build -- --mode github
         env:
