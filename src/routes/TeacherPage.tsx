@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Award, BarChart3, ChevronDown, ChevronUp, Crown, LockKeyhole, RefreshCw, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { Award, BarChart3, ChevronDown, ChevronUp, Crown, LockKeyhole, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { averageAccuracy, classAverageAccuracy, competitionScore, completedAssignedLetters, completionPercent, isTrueTie, latestActivityAt, rankStudents } from '../lib/scoring'
 import { alphabetOrder } from '../data/lessons'
@@ -10,13 +10,15 @@ import { TopBar } from '../components/TopBar'
 import trophy from '../assets/rewards/trophy-class-winner.webp'
 
 export function TeacherPage() {
-  const { data, currentStudent, teacherMode, teacherStudents, teacherDataStatus, teacherLastUpdatedAt, cloudSyncEnabled, enterTeacherMode, refreshTeacherStudents } = useApp()
+  const { data, currentStudent, teacherMode, teacherStudents, teacherDataStatus, teacherLastUpdatedAt, cloudSyncEnabled, enterTeacherMode, refreshTeacherStudents, resetTeacherStudent, deleteTeacherStudent } = useApp()
   const navigate = useNavigate()
   const [unlocked, setUnlocked] = useState(teacherMode)
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
   const [group, setGroup] = useState('All groups')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [studentAction, setStudentAction] = useState<{ studentId: string; kind: 'reset' | 'delete' } | null>(null)
+  const [studentActionMessage, setStudentActionMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
   const dashboardStudents = useMemo(() => cloudSyncEnabled ? (teacherStudents ?? []) : data.students, [cloudSyncEnabled, teacherStudents, data.students])
   const groups = useMemo(() => [...new Set(dashboardStudents.map((student) => student.group))], [dashboardStudents])
@@ -49,6 +51,37 @@ export function TeacherPage() {
     event.preventDefault()
     if (await enterTeacherMode(pin)) setUnlocked(true)
     else setError(true)
+  }
+
+  const resetStudent = async (studentId: string, studentName: string) => {
+    const confirmed = window.confirm(`Clear all results for ${studentName}?\n\nОчистить весь прогресс ученика ${studentName}? Это действие нельзя отменить.`)
+    if (!confirmed) return
+    setStudentAction({ studentId, kind: 'reset' })
+    setStudentActionMessage(null)
+    const ok = await resetTeacherStudent(studentId)
+    setStudentAction(null)
+    setStudentActionMessage({
+      ok,
+      text: ok
+        ? `Results cleared for ${studentName}. (Результаты ученика ${studentName} очищены.)`
+        : `Could not clear results for ${studentName}. Please try again. (Не удалось очистить результаты. Повторите.)`,
+    })
+  }
+
+  const deleteStudent = async (studentId: string, studentName: string) => {
+    const confirmed = window.confirm(`Delete ${studentName}'s account and all results?\n\nУдалить аккаунт ${studentName} и весь прогресс из облака? Это действие нельзя отменить.`)
+    if (!confirmed) return
+    setStudentAction({ studentId, kind: 'delete' })
+    setStudentActionMessage(null)
+    const ok = await deleteTeacherStudent(studentId)
+    setStudentAction(null)
+    if (ok) setExpanded(null)
+    setStudentActionMessage({
+      ok,
+      text: ok
+        ? `Account deleted for ${studentName}. (Аккаунт ученика ${studentName} удалён.)`
+        : `Could not delete ${studentName}'s account. Please try again. (Не удалось удалить аккаунт. Повторите.)`,
+    })
   }
 
   if (!unlocked || !teacherMode) {
@@ -113,6 +146,10 @@ export function TeacherPage() {
         <button className="secondary-button" onClick={() => void refreshTeacherStudents()} disabled={teacherDataStatus === 'loading'}><RefreshCw className={teacherDataStatus === 'loading' ? 'is-spinning' : ''} /> Refresh (Обновить)</button>
       </div>}
 
+      {studentActionMessage && <div className={`student-action-message ${studentActionMessage.ok ? 'student-action-message--success' : 'student-action-message--error'}`} role="status">
+        {studentActionMessage.text}
+      </div>}
+
       <section className="metric-grid">
         <article><span><Users /></span><div><small>Students (Ученики)</small><strong>{visibleStudents.length}</strong></div></article>
         <article><span><BarChart3 /></span><div><small>Letters completed (Букв изучено)</small><strong>{totalCompleted}</strong></div></article>
@@ -140,6 +177,17 @@ export function TeacherPage() {
                     <div className="student-detail">
                       <div><h3>Letter breakdown (По буквам)</h3><small className="student-last-active">Last activity (Последняя активность): {latestActivityAt(student) ? new Date(latestActivityAt(student)!).toLocaleString() : '—'}</small>{alphabetOrder.map((letter) => student.progress[letter]).filter(Boolean).map((progress) => <p key={progress!.letter}><strong>{progress!.letter.toUpperCase()}</strong><span>Uppercase (Заглавная) {progress!.uppercase.bestAccuracy}%</span><span>Lowercase (Строчная) {progress!.lowercase.bestAccuracy}%</span><span>{progress!.completed ? 'Mastered (Изучено)' : 'In progress (В процессе)'}</span></p>)}</div>
                       <div><h3>Earned rewards (Награды)</h3><div className="mini-badges">{student.badges.length ? student.badges.map((award) => { const badge = badges.find((item) => item.id === award.badgeId); return badge && <span key={award.badgeId}><img src={badge.image} alt="" />{badge.title}</span> }) : <small>No badges yet — the first one is close. (Наград пока нет — первая уже близко.)</small>}</div></div>
+                      <div className="student-admin-actions">
+                        <div><strong>Manage student (Управление учеником)</strong><small>Changes are saved in the cloud and applied on the student's device. (Изменения сохраняются в облаке и применяются на устройстве ученика.)</small></div>
+                        <div>
+                          <button className="secondary-button" disabled={studentAction !== null} onClick={() => void resetStudent(student.id, student.name)}>
+                            <RotateCcw className={studentAction?.studentId === student.id && studentAction.kind === 'reset' ? 'is-spinning' : ''} /> Clear results (Очистить результаты)
+                          </button>
+                          <button className="danger-button" disabled={studentAction !== null} onClick={() => void deleteStudent(student.id, student.name)}>
+                            <Trash2 /> {studentAction?.studentId === student.id && studentAction.kind === 'delete' ? 'Deleting… (Удаляем…)' : 'Delete account (Удалить аккаунт)'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

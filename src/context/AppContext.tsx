@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { AppData, AppSettings, Attempt, LessonProgress, LetterKey, StageKind, Student } from '../types'
 import { defaultData, loadData, saveData } from '../lib/storage'
 import { earnedBadgeIds } from '../lib/rewards'
-import { clearTeacherCloudSession, CloudRequestError, cloudSyncEnabled, connectStudentCloud, fetchTeacherStudentsCloud, loginTeacherCloud, syncStudentCloud, type SyncStatus } from '../lib/cloud'
+import { clearTeacherCloudSession, CloudRequestError, cloudSyncEnabled, connectStudentCloud, deleteStudentAccountCloud, fetchTeacherStudentsCloud, loginTeacherCloud, resetStudentResultsCloud, syncStudentCloud, type SyncStatus } from '../lib/cloud'
 
 export type TeacherDataStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -19,6 +19,8 @@ interface AppContextValue {
   selectStudent: (id: string | null) => void
   enterTeacherMode: (pin: string) => Promise<boolean>
   refreshTeacherStudents: () => Promise<boolean>
+  resetTeacherStudent: (studentId: string) => Promise<boolean>
+  deleteTeacherStudent: (studentId: string) => Promise<boolean>
   exitTeacherMode: () => void
   recordAttempt: (letter: LetterKey, stage: StageKind, accuracy: number, success: boolean) => Student | null
   resetStage: (letter: LetterKey, stage: StageKind) => void
@@ -28,7 +30,7 @@ interface AppContextValue {
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
-const TEACHER_PIN_DIGEST = 'bc4f831d774b13d4a20f1461ef2abc3543ceb2fd95937efac05fe2c9231d0519'
+const TEACHER_PIN_DIGEST = '56ac5bdda8c3795c029060961efd03c17b9aa248ba180bac4e7295e52eefb390'
 
 async function pinDigest(pin: string) {
   const bytes = new TextEncoder().encode(pin)
@@ -63,8 +65,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => {
       setSyncStatus('syncing')
       void syncStudentCloud(currentStudent)
-        .then(() => { if (syncGenerationRef.current === generation) setSyncStatus('synced') })
-        .catch(() => { if (syncGenerationRef.current === generation) setSyncStatus('error') })
+        .then((remoteStudent) => {
+          if (syncGenerationRef.current !== generation) return
+          if (remoteStudent) {
+            setData((previous) => ({
+              ...previous,
+              students: previous.students.map((student) => student.id === remoteStudent.id
+                ? { ...remoteStudent, name: student.name, group: student.group, createdAt: student.createdAt }
+                : student),
+            }))
+          }
+          setSyncStatus('synced')
+        })
+        .catch((error) => {
+          if (syncGenerationRef.current !== generation) return
+          if (error instanceof CloudRequestError && error.status === 410) {
+            setData((previous) => ({
+              ...previous,
+              students: previous.students.filter((student) => student.id !== currentStudent.id),
+              currentStudentId: previous.currentStudentId === currentStudent.id ? null : previous.currentStudentId,
+            }))
+            setSyncStatus('synced')
+            return
+          }
+          setSyncStatus('error')
+        })
     }, 900)
     return () => window.clearTimeout(timer)
   }, [currentStudent, teacherMode])
@@ -177,6 +202,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTeacherMode(false)
   }, [])
 
+  const resetTeacherStudent = useCallback(async (studentId: string) => {
+    try {
+      const resetStudent = cloudSyncEnabled
+        ? await resetStudentResultsCloud(studentId)
+        : (() => {
+            const student = data.students.find((item) => item.id === studentId)
+            return student ? { ...student, updatedAt: new Date().toISOString(), progress: {}, badges: [] } : null
+          })()
+      if (!resetStudent) return false
+      setTeacherStudents((previous) => previous?.map((student) => student.id === studentId ? resetStudent : student) ?? previous)
+      setData((previous) => ({
+        ...previous,
+        students: previous.students.map((student) => student.id === studentId
+          ? { ...resetStudent, name: student.name, group: student.group, createdAt: student.createdAt }
+          : student),
+      }))
+      setTeacherLastUpdatedAt(new Date().toISOString())
+      return true
+    } catch (error) {
+      if (error instanceof CloudRequestError && error.status === 401) exitTeacherMode()
+      return false
+    }
+  }, [data.students, exitTeacherMode])
+
+  const deleteTeacherStudent = useCallback(async (studentId: string) => {
+    try {
+      if (cloudSyncEnabled) await deleteStudentAccountCloud(studentId)
+      setTeacherStudents((previous) => previous?.filter((student) => student.id !== studentId) ?? previous)
+      setData((previous) => ({
+        ...previous,
+        students: previous.students.filter((student) => student.id !== studentId),
+        currentStudentId: previous.currentStudentId === studentId ? null : previous.currentStudentId,
+      }))
+      setTeacherLastUpdatedAt(new Date().toISOString())
+      return true
+    } catch (error) {
+      if (error instanceof CloudRequestError && error.status === 401) exitTeacherMode()
+      return false
+    }
+  }, [exitTeacherMode])
+
   const recordAttempt = useCallback((letter: LetterKey, stage: StageKind, accuracy: number, success: boolean) => {
     let updatedStudent: Student | null = null
     if (cloudSyncEnabled) setSyncStatus('syncing')
@@ -247,8 +313,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearDemoData = useCallback(() => setData(defaultData), [])
 
-  const value = useMemo(() => ({ data, currentStudent, teacherMode, teacherStudents, teacherDataStatus, teacherLastUpdatedAt, syncStatus, cloudSyncEnabled, registerStudent, selectStudent, enterTeacherMode, refreshTeacherStudents, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData }),
-    [data, currentStudent, teacherMode, teacherStudents, teacherDataStatus, teacherLastUpdatedAt, syncStatus, registerStudent, selectStudent, enterTeacherMode, refreshTeacherStudents, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData])
+  const value = useMemo(() => ({ data, currentStudent, teacherMode, teacherStudents, teacherDataStatus, teacherLastUpdatedAt, syncStatus, cloudSyncEnabled, registerStudent, selectStudent, enterTeacherMode, refreshTeacherStudents, resetTeacherStudent, deleteTeacherStudent, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData }),
+    [data, currentStudent, teacherMode, teacherStudents, teacherDataStatus, teacherLastUpdatedAt, syncStatus, registerStudent, selectStudent, enterTeacherMode, refreshTeacherStudents, resetTeacherStudent, deleteTeacherStudent, exitTeacherMode, recordAttempt, resetStage, resetCurrentProgress, updateSettings, clearDemoData])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

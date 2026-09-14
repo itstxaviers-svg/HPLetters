@@ -21,7 +21,7 @@ interface TeacherStudentsResponse {
 const API_BASE = (import.meta.env.VITE_YANDEX_API_URL ?? '').trim().replace(/\/$/, '')
 const STUDENT_SESSION_PREFIX = 'learn_letters_cloud_student_'
 const TEACHER_SESSION_KEY = 'learn_letters_cloud_teacher'
-const studentSyncQueues = new Map<string, Promise<void>>()
+const studentSyncQueues = new Map<string, Promise<Student | null>>()
 
 export const cloudSyncEnabled = Boolean(API_BASE)
 
@@ -78,25 +78,28 @@ export async function connectStudentCloud(student: Student): Promise<void> {
   await ensureStudentSession(student)
 }
 
-async function sendStudentSnapshot(student: Student): Promise<void> {
+async function sendStudentSnapshot(student: Student): Promise<Student | null> {
   const session = await ensureStudentSession(student)
   try {
-    await request<{ ok: true }>('/student/sync', {
+    const response = await request<{ ok: true; student?: Student }>('/student/sync', {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.token}` },
       body: JSON.stringify({ student }),
     })
+    return response.student ?? null
   } catch (error) {
-    if (error instanceof CloudRequestError && error.status === 401) localStorage.removeItem(`${STUDENT_SESSION_PREFIX}${student.id}`)
+    if (error instanceof CloudRequestError && (error.status === 401 || error.status === 410)) {
+      localStorage.removeItem(`${STUDENT_SESSION_PREFIX}${student.id}`)
+    }
     throw error
   }
 }
 
-export function syncStudentCloud(student: Student): Promise<void> {
+export function syncStudentCloud(student: Student): Promise<Student | null> {
   // Keep snapshots for one pupil strictly ordered. Without this queue an older,
   // slower request can finish after a newer one and roll cloud progress back.
   const snapshot = structuredClone(student)
-  const previous = studentSyncQueues.get(student.id) ?? Promise.resolve()
+  const previous = studentSyncQueues.get(student.id) ?? Promise.resolve<Student | null>(null)
   const queued = previous.catch(() => undefined).then(() => sendStudentSnapshot(snapshot))
   studentSyncQueues.set(student.id, queued)
   void queued.finally(() => {
@@ -121,6 +124,27 @@ export async function fetchTeacherStudentsCloud(session = readSession(sessionSto
     headers: { Authorization: `Bearer ${session.token}` },
   })
   return response.students
+}
+
+export async function resetStudentResultsCloud(studentId: string): Promise<Student> {
+  const session = readSession(sessionStorage, TEACHER_SESSION_KEY)
+  if (!session) throw new CloudRequestError('Teacher session expired.', 401)
+  const response = await request<{ ok: true; student: Student }>('/teacher/student/reset', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.token}` },
+    body: JSON.stringify({ studentId }),
+  })
+  return response.student
+}
+
+export async function deleteStudentAccountCloud(studentId: string): Promise<void> {
+  const session = readSession(sessionStorage, TEACHER_SESSION_KEY)
+  if (!session) throw new CloudRequestError('Teacher session expired.', 401)
+  await request<{ ok: true }>('/teacher/student/delete', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.token}` },
+    body: JSON.stringify({ studentId }),
+  })
 }
 
 export function clearTeacherCloudSession(): void {

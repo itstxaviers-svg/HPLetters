@@ -273,7 +273,21 @@ def _sync_student(event, data):
         return _response(400, {"message": "Student data does not match the signed-in profile."})
     row = _find_student(identity["sub"])
     if not row:
-        return _response(404, {"message": "Student profile was not found."})
+        return _response(410, {"message": "Student account was deleted."})
+
+    snapshots = _rows(_query("""
+        DECLARE $student_id AS Utf8;
+        SELECT payload, updated_at FROM student_snapshots WHERE student_id = $student_id;
+    """, student_id=identity["sub"]))
+    if snapshots:
+        server_student = json.loads(_value(snapshots[0], "payload"))
+        reset_token = server_student.get("cloudResetToken")
+        if reset_token and student.get("cloudResetToken") != reset_token:
+            return _response(200, {
+                "ok": True,
+                "syncedAt": _iso(_value(snapshots[0], "updated_at")),
+                "student": server_student,
+            })
     safe_student = dict(student)
     safe_student["name"] = _value(row, "display_name")
     safe_student["group"] = _value(row, "group_display_name")
@@ -287,6 +301,67 @@ def _sync_student(event, data):
         UPDATE students SET updated_at = $now WHERE student_id = $student_id;
     """, student_id=identity["sub"], payload=payload, now=now)
     return _response(200, {"ok": True, "syncedAt": _iso(now)})
+
+
+def _teacher_owned_student(event, data):
+    identity = _authenticate(event, "teacher")
+    if not identity:
+        return None, _response(401, {"message": "Teacher login required."})
+    student_id = str(data.get("studentId", "")).strip()
+    try:
+        uuid.UUID(student_id)
+    except (ValueError, AttributeError):
+        return None, _response(400, {"message": "Student ID is invalid."})
+    row = _find_student(student_id)
+    if not row:
+        return None, _response(404, {"message": "Student profile was not found."})
+    groups = _rows(_query("""
+        DECLARE $join_code AS Utf8;
+        SELECT teacher_id FROM groups WHERE join_code = $join_code;
+    """, join_code=_value(row, "join_code")))
+    if not groups or _value(groups[0], "teacher_id") != identity["sub"]:
+        return None, _response(404, {"message": "Student profile was not found."})
+    return row, None
+
+
+def _teacher_reset_student(event, data):
+    row, error = _teacher_owned_student(event, data)
+    if error:
+        return error
+    student_id = _value(row, "student_id")
+    now = _utcnow()
+    reset_student = {
+        "id": student_id,
+        "name": _value(row, "display_name"),
+        "group": _value(row, "group_display_name"),
+        "createdAt": _iso(_value(row, "created_at")),
+        "updatedAt": _iso(now),
+        "cloudResetToken": str(uuid.uuid4()),
+        "progress": {},
+        "badges": [],
+    }
+    payload = json.dumps(reset_student, ensure_ascii=False, separators=(",", ":"))
+    _query("""
+        DECLARE $student_id AS Utf8; DECLARE $payload AS Json; DECLARE $now AS Timestamp;
+        UPSERT INTO student_snapshots (student_id, payload, updated_at) VALUES ($student_id, $payload, $now);
+        UPDATE students SET updated_at = $now WHERE student_id = $student_id;
+    """, student_id=student_id, payload=payload, now=now)
+    return _response(200, {"ok": True, "student": reset_student})
+
+
+def _teacher_delete_student(event, data):
+    row, error = _teacher_owned_student(event, data)
+    if error:
+        return error
+    student_id = _value(row, "student_id")
+    group_id = _value(row, "group_id")
+    _query("""
+        DECLARE $student_id AS Utf8; DECLARE $group_id AS Utf8;
+        DELETE FROM student_snapshots WHERE student_id = $student_id;
+        DELETE FROM group_members WHERE group_id = $group_id AND student_id = $student_id;
+        DELETE FROM students WHERE student_id = $student_id;
+    """, student_id=student_id, group_id=group_id)
+    return _response(200, {"ok": True})
 
 
 def _login_teacher(data):
@@ -362,6 +437,10 @@ def handler(event, context):
             return _login_teacher(data)
         if method == "GET" and path == "/teacher/students":
             return _teacher_students(event)
+        if method == "POST" and path == "/teacher/student/reset":
+            return _teacher_reset_student(event, data)
+        if method == "POST" and path == "/teacher/student/delete":
+            return _teacher_delete_student(event, data)
         return _response(404, {"message": "Route not found."})
     except KeyError as error:
         return _response(500, {"message": f"Missing function setting: {error.args[0]}"})

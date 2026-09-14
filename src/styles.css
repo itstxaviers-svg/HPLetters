@@ -92,7 +92,7 @@ input::placeholder { color: #9c9eb0; }
 .primary-button { color: white; border: 1px solid #263d79; background: linear-gradient(135deg, var(--royal), var(--indigo)); box-shadow: 0 12px 26px rgba(47,95,180,.24), inset 0 1px rgba(255,255,255,.3); }
 .primary-button:hover, .secondary-button:hover { transform: translateY(-2px); }
 .secondary-button { color: var(--midnight); border: 1px solid var(--border); background: rgba(255,255,255,.76); }
-.secondary-button:disabled { opacity: .48; transform: none; }
+.secondary-button:disabled, .danger-button:disabled { opacity: .48; transform: none; cursor: not-allowed; }
 .section-divider { position: relative; margin: 26px 0 16px; color: #8f8b80; text-align: center; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .section-divider::before { content: ''; position: absolute; z-index: -1; top: 50%; left: 0; right: 0; height: 1px; background: var(--border); }
 .section-divider span { padding: 0 10px; background: #fbf6e8; }
@@ -314,6 +314,15 @@ input::placeholder { color: #9c9eb0; }
 .student-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 18px 22px; border-bottom: 1px solid var(--border); background: rgba(245,240,224,.58); }
 .student-detail h3 { font-size: 12px; text-transform: uppercase; }
 .student-detail p { display: grid; grid-template-columns: 28px 1fr 1fr auto; gap: 8px; margin-bottom: 7px; font-size: 10px; }
+.student-admin-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.student-admin-actions strong, .student-admin-actions small { display: block; }
+.student-admin-actions small { max-width: 520px; margin-top: 3px; color: var(--ink-soft); font-size: 9px; line-height: 1.4; }
+.student-admin-actions > div:last-child { display: flex; gap: 9px; }
+.student-admin-actions button { min-height: 40px; padding: 0 13px; font-size: 10px; }
+.student-admin-actions svg { width: 15px; }
+.student-action-message { margin: -7px 0 17px; padding: 11px 14px; border-radius: 13px; font-size: 11px; font-weight: 800; }
+.student-action-message--success { color: #347455; border: 1px solid rgba(101,193,140,.3); background: rgba(246,255,249,.84); }
+.student-action-message--error { color: #9d4444; border: 1px solid rgba(217,120,120,.3); background: rgba(255,244,242,.84); }
 .mini-badges { display: flex; flex-wrap: wrap; gap: 8px; }
 .mini-badges span { display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 99px; background: white; font-size: 9px; }
 .mini-badges img { width: 25px; height: 25px; object-fit: contain; }
@@ -596,6 +605,8 @@ input::placeholder { color: #9c9eb0; }
   .student-row { grid-template-columns: 1.8fr .8fr .7fr 24px; }
   .student-row > span:nth-child(3) { display: none; }
   .student-detail { grid-template-columns: 1fr; }
+  .student-admin-actions { align-items: stretch; flex-direction: column; }
+  .student-admin-actions > div:last-child { flex-direction: column; }
 }
 
 @media (max-width: 520px) {
