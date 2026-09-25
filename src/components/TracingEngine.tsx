@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { motion } from 'motion/react'
 import { Hand, Sparkles } from 'lucide-react'
 import type { Point, StageKind, TraceLessonConfig, TraceSegment } from '../types'
+import { lineLength, resampleStroke } from '../lib/traceGeometry'
 
 interface TracingEngineProps {
   lesson: TraceLessonConfig
@@ -15,10 +16,6 @@ interface SegmentResult {
   accuracy: number
   valid: boolean
   majorDeviation: boolean
-}
-
-function lineLength(points: Point[]) {
-  return points.slice(1).reduce((sum, point, index) => sum + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0)
 }
 
 function minDistance(point: Point, targets: Point[]) {
@@ -37,6 +34,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   const repeatTimerRef = useRef<number | null>(null)
   const strokesRef = useRef<Point[][]>([])
   const activeStrokeRef = useRef<Point[] | null>(null)
+  const activePointerIdRef = useRef<number | null>(null)
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 })
   const [strokeCount, setStrokeCount] = useState(0)
   const [locked, setLocked] = useState(false)
@@ -90,6 +88,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   const clear = useCallback(() => {
     strokesRef.current = []
     activeStrokeRef.current = null
+    activePointerIdRef.current = null
     soundPlayedRef.current = false
     attemptActiveRef.current = false
     setStrokeCount(0)
@@ -177,8 +176,9 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     }
 
     const template = segmentPoints(segment)
-    const stride = Math.max(1, Math.floor(points.length / 140))
-    const sampledInput = points.filter((_, index) => index % stride === 0)
+    const resampled = resampleStroke(points, Math.max(1.5, scale * 0.65))
+    const stride = Math.max(1, Math.ceil(resampled.length / 180))
+    const sampledInput = resampled.filter((_, index) => index % stride === 0)
     if (!template.length || sampledInput.length < config.tolerances.minPoints) return { accuracy: 0, valid: false, majorDeviation: true }
     const corridor = config.tolerances.corridor * scale
     const distances = sampledInput.map((point) => minDistance(point, template))
@@ -214,7 +214,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   }
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (disabled || locked || strokesRef.current.length >= config.segments.length) return
+    if (disabled || locked || activeStrokeRef.current || strokesRef.current.length >= config.segments.length) return
     event.currentTarget.setPointerCapture(event.pointerId)
     const point = localPoint(event)
     const segment = config.segments[strokesRef.current.length]
@@ -226,6 +226,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
         return
       }
     }
+    activePointerIdRef.current = event.pointerId
     activeStrokeRef.current = [point]
     attemptActiveRef.current = true
     if (soundEnabled && audioRef.current && !soundPlayedRef.current) {
@@ -238,24 +239,39 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   }
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const point = localPoint(event)
+    if (activePointerIdRef.current !== event.pointerId) return
     const active = activeStrokeRef.current
     if (!active) return
-    const last = active.at(-1)!
-    if (Math.hypot(point.x - last.x, point.y - last.y) >= 1.4) active.push(point)
+    const rect = event.currentTarget.getBoundingClientRect()
+    const nativePoints = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent]
+    for (const nativePoint of nativePoints) {
+      const point = { x: nativePoint.clientX - rect.left, y: nativePoint.clientY - rect.top }
+      const last = active.at(-1)!
+      if (Math.hypot(point.x - last.x, point.y - last.y) >= 1.4) active.push(point)
+    }
     draw()
   }
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) return
     const active = activeStrokeRef.current
     if (!active) return
     active.push(localPoint(event))
     strokesRef.current = [...strokesRef.current, active]
     activeStrokeRef.current = null
+    activePointerIdRef.current = null
     const count = strokesRef.current.length
     setStrokeCount(count)
     draw()
     if (count === config.segments.length) assess(strokesRef.current)
+  }
+
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) return
+    activeStrokeRef.current = null
+    activePointerIdRef.current = null
+    attemptActiveRef.current = strokesRef.current.length > 0
+    draw()
   }
 
   return (
@@ -280,7 +296,8 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onLostPointerCapture={handlePointerCancel}
         />
         {locked && <motion.div className="grading-badge" initial={{ scale: 0.7 }} animate={{ scale: 1 }}><Sparkles /> Checking your magic… (Проверяем волшебство…)</motion.div>}
       </div>

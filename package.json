@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test:policy": "node scripts/verify-classroom-policy.mjs",
     "test:rating": "node scripts/verify-rating.mjs",
+    "test:tracing": "node scripts/verify-tracing.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

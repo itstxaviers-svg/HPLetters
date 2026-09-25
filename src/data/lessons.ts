@@ -1,16 +1,13 @@
 import type { LetterKey, TraceLessonConfig, TraceSegment, TraceStageConfig } from '../types'
-import { classroomPolicyForGroup } from './classroomPolicy'
+import { classroomPolicyForGroup } from './classroomPolicy.ts'
 
-export { studentLessonIsOpenForGroup } from './classroomPolicy'
+export { studentLessonIsOpenForGroup } from './classroomPolicy.ts'
 
 export const alphabetOrder = [
   's', 'i', 't', 'p', 'a', 'n', 'm', 'd', 'g', 'o',
   'c', 'k', 'e', 'u', 'r', 'h', 'b', 'f', 'l', 'j',
   'v', 'w', 'x', 'y', 'z',
 ] as const
-
-export const studentReleaseThrough: LetterKey = 'h'
-export const studentReleaseCount = alphabetOrder.indexOf(studentReleaseThrough) + 1
 
 /**
  * Current classroom release plan.
@@ -32,7 +29,7 @@ const shared = {
   targetAccuracy: 80,
 }
 
-const publicAsset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
+const publicAsset = (path: string) => `${import.meta.env?.BASE_URL ?? '/'}${path.replace(/^\//, '')}`
 
 const standardStage = (label: string, segments: TraceSegment[]): TraceStageConfig => ({
   label,

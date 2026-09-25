@@ -36,6 +36,9 @@ jobs:
       - name: Verify teacher rating
         run: npm run test:rating
 
+      - name: Verify all tracing lessons
+        run: npm run test:tracing
+
       - name: Build application
         run: npm run build -- --mode github
         env:

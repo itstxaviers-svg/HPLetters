@@ -5,9 +5,9 @@ export interface ClassroomPolicy {
 
 const policies: Record<'11-12' | '14' | '15' | '16', ClassroomPolicy> = {
   '11-12': { releaseCount: 25, sequential: true },
-  '14': { releaseCount: 16, sequential: true },
+  '14': { releaseCount: 18, sequential: true },
   '15': { releaseCount: 0, sequential: false },
-  '16': { releaseCount: 5, sequential: false },
+  '16': { releaseCount: 6, sequential: false },
 }
 
 function classroomGroup(group: string): keyof typeof policies | null {
