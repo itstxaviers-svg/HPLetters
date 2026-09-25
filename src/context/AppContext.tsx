@@ -30,7 +30,7 @@ interface AppContextValue {
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
-const TEACHER_PIN_DIGEST = '56ac5bdda8c3795c029060961efd03c17b9aa248ba180bac4e7295e52eefb390'
+const TEACHER_PIN_DIGEST = '1950fe84f8d0a2addb4443369565f08f79230dd3e4a1164afee072a2f1e02a80'
 
 async function pinDigest(pin: string) {
   const bytes = new TextEncoder().encode(pin)

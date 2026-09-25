@@ -376,6 +376,21 @@ def _login_teacher(data):
     return _response(200, {"session": _issue_token("teacher", teacher_id)})
 
 
+def _change_teacher_pin(event, data):
+    identity = _authenticate(event, "teacher")
+    if not identity:
+        return _response(401, {"message": "Teacher login required."})
+    new_pin = str(data.get("newPin", ""))
+    if not re.fullmatch(r"\d{6,12}", new_pin):
+        return _response(400, {"message": "Use a 6–12 digit PIN."})
+    _query("""
+        DECLARE $teacher_id AS Utf8; DECLARE $pin_hash AS Utf8;
+        UPDATE teachers SET pin_hash = $pin_hash
+        WHERE teacher_key = 'primary' AND teacher_id = $teacher_id;
+    """, teacher_id=identity["sub"], pin_hash=_hash_pin(new_pin))
+    return _response(200, {"ok": True})
+
+
 def _teacher_students(event):
     identity = _authenticate(event, "teacher")
     if not identity:
@@ -435,6 +450,8 @@ def handler(event, context):
             return _sync_student(event, data)
         if method == "POST" and path == "/teacher/login":
             return _login_teacher(data)
+        if method == "POST" and path == "/teacher/pin":
+            return _change_teacher_pin(event, data)
         if method == "GET" and path == "/teacher/students":
             return _teacher_students(event)
         if method == "POST" and path == "/teacher/student/reset":
