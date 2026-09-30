@@ -38,7 +38,8 @@ export function classAverageAccuracy(students: Student[]): number {
 export function latestActivityAt(student: Student): string | undefined {
   const dates = allAttempts(student).map((attempt) => attempt.createdAt).filter(Boolean)
   if (student.updatedAt) dates.push(student.updatedAt)
-  return dates.sort().at(-1)
+  const sortedDates = dates.sort()
+  return sortedDates[sortedDates.length - 1]
 }
 
 export function competitionScore(student: Student): number {

@@ -216,7 +216,7 @@ input::placeholder { color: #9c9eb0; }
 .trace-board--disabled { opacity: .68; }
 .trace-board svg, .trace-board canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .trace-board svg { pointer-events: none; }
-.trace-board canvas { z-index: 2; touch-action: none; }
+.trace-board canvas { z-index: 2; touch-action: none; -ms-touch-action: none; overscroll-behavior: contain; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .guide-line { stroke: rgba(47,95,180,.13); stroke-width: .45; stroke-dasharray: 1.5 2; }
 .guide-line--middle { stroke: rgba(215,180,106,.3); }
 .trace-path-under { fill: none; stroke: rgba(215,180,106,.15); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type TouchEvent as ReactTouchEvent,
+} from 'react'
 import { motion } from 'motion/react'
 import { Hand, Sparkles } from 'lucide-react'
 import type { Point, StageKind, TraceLessonConfig, TraceSegment } from '../types'
@@ -35,6 +43,8 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   const strokesRef = useRef<Point[][]>([])
   const activeStrokeRef = useRef<Point[] | null>(null)
   const activePointerIdRef = useRef<number | null>(null)
+  const lastLegacyTouchAtRef = useRef(0)
+  const supportsPointerEventsRef = useRef(typeof window !== 'undefined' && 'PointerEvent' in window)
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 })
   const [strokeCount, setStrokeCount] = useState(0)
   const [locked, setLocked] = useState(false)
@@ -78,7 +88,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
           const midpoint = { x: (points[index].x + points[index + 1].x) / 2, y: (points[index].y + points[index + 1].y) / 2 }
           context.quadraticCurveTo(points[index].x, points[index].y, midpoint.x, midpoint.y)
         }
-        const finalPoint = points.at(-1)!
+        const finalPoint = points[points.length - 1]
         context.lineTo(finalPoint.x, finalPoint.y)
       }
       context.stroke()
@@ -122,9 +132,10 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const observer = new ResizeObserver(([entry]) => {
-      const width = entry.contentRect.width
-      const height = entry.contentRect.height
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect()
+      const width = rect.width
+      const height = rect.height
       // A full-resolution canvas can become a very large GPU texture on
       // Android phones (3x/4x DPR). Combined with the layered lesson UI this
       // can corrupt whole compositor tiles, not just the drawing surface.
@@ -137,14 +148,25 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
       if (canvas.height !== pixelHeight) canvas.height = pixelHeight
       sizeRef.current = { width, height, dpr }
       draw()
-    })
-    observer.observe(canvas)
-    return () => observer.disconnect()
+    }
+    resizeCanvas()
+    const ResizeObserverCtor = (globalThis as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver
+    if (ResizeObserverCtor) {
+      const observer = new ResizeObserverCtor(resizeCanvas)
+      observer.observe(canvas)
+      return () => observer.disconnect()
+    }
+    window.addEventListener('resize', resizeCanvas)
+    window.addEventListener('orientationchange', resizeCanvas)
+    return () => {
+      window.removeEventListener('resize', resizeCanvas)
+      window.removeEventListener('orientationchange', resizeCanvas)
+    }
   }, [draw])
 
-  const localPoint = (event: ReactPointerEvent<HTMLCanvasElement>): Point => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+  const localPoint = (canvas: HTMLCanvasElement, clientX: number, clientY: number): Point => {
+    const rect = canvas.getBoundingClientRect()
+    return { x: clientX - rect.left, y: clientY - rect.top }
   }
 
   const viewBoxTransform = () => {
@@ -186,7 +208,7 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     const outsideShare = distances.filter((distance) => distance > corridor).length / distances.length
     const directionValid = !segment.strictStart || (
       minDistance(sampledInput[0], [template[0]]) <= segment.strictStart.radius * scale
-      && minDistance(sampledInput.at(-1)!, [template.at(-1)!]) <= corridor
+      && minDistance(sampledInput[sampledInput.length - 1], [template[template.length - 1]]) <= corridor
     )
     const majorDeviation = !directionValid || outsideShare > 0.08 || distances.some((distance) => distance > corridor * 1.65)
     const covered = template.filter((point) => minDistance(point, sampledInput) <= corridor).length / template.length
@@ -213,20 +235,15 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     }, 460)
   }
 
-  const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+  const beginStroke = (pointerId: number, point: Point) => {
     if (disabled || locked || activeStrokeRef.current || strokesRef.current.length >= config.segments.length) return
-    event.currentTarget.setPointerCapture(event.pointerId)
-    const point = localPoint(event)
     const segment = config.segments[strokesRef.current.length]
     if (segment.strictStart) {
       const { scale, offsetX, offsetY } = viewBoxTransform()
       const target = { x: offsetX + segment.strictStart.x * scale, y: offsetY + segment.strictStart.y * scale }
-      if (Math.hypot(point.x - target.x, point.y - target.y) > segment.strictStart.radius * scale) {
-        event.currentTarget.releasePointerCapture(event.pointerId)
-        return
-      }
+      if (Math.hypot(point.x - target.x, point.y - target.y) > segment.strictStart.radius * scale) return
     }
-    activePointerIdRef.current = event.pointerId
+    activePointerIdRef.current = pointerId
     activeStrokeRef.current = [point]
     attemptActiveRef.current = true
     if (soundEnabled && audioRef.current && !soundPlayedRef.current) {
@@ -238,25 +255,17 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     draw()
   }
 
-  const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (activePointerIdRef.current !== event.pointerId) return
+  const appendPoint = (point: Point) => {
     const active = activeStrokeRef.current
     if (!active) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const nativePoints = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent]
-    for (const nativePoint of nativePoints) {
-      const point = { x: nativePoint.clientX - rect.left, y: nativePoint.clientY - rect.top }
-      const last = active.at(-1)!
-      if (Math.hypot(point.x - last.x, point.y - last.y) >= 1.4) active.push(point)
-    }
-    draw()
+    const last = active[active.length - 1]
+    if (Math.hypot(point.x - last.x, point.y - last.y) >= 1.4) active.push(point)
   }
 
-  const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (activePointerIdRef.current !== event.pointerId) return
+  const finishStroke = (point?: Point) => {
     const active = activeStrokeRef.current
     if (!active) return
-    active.push(localPoint(event))
+    if (point) appendPoint(point)
     strokesRef.current = [...strokesRef.current, active]
     activeStrokeRef.current = null
     activePointerIdRef.current = null
@@ -266,12 +275,103 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
     if (count === config.segments.length) assess(strokesRef.current)
   }
 
-  const handlePointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (activePointerIdRef.current !== event.pointerId) return
+  const cancelStroke = () => {
+    const active = activeStrokeRef.current
+    // Older iOS can cancel an otherwise valid touch when it reaches the edge
+    // of the canvas. Keep a real stroke instead of silently making it vanish.
+    if (active && active.length > 1 && lineLength(active) > 5) {
+      finishStroke()
+      return
+    }
     activeStrokeRef.current = null
     activePointerIdRef.current = null
     attemptActiveRef.current = strokesRef.current.length > 0
     draw()
+  }
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    event.preventDefault()
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // Some early Pointer Events implementations expose the API but throw.
+    }
+    beginStroke(event.pointerId, localPoint(event.currentTarget, event.clientX, event.clientY))
+  }
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) return
+    event.preventDefault()
+    const rect = event.currentTarget.getBoundingClientRect()
+    const nativePoints = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent]
+    for (const nativePoint of nativePoints) {
+      appendPoint({ x: nativePoint.clientX - rect.left, y: nativePoint.clientY - rect.top })
+    }
+    draw()
+  }
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) return
+    event.preventDefault()
+    finishStroke(localPoint(event.currentTarget, event.clientX, event.clientY))
+  }
+
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) return
+    cancelStroke()
+  }
+
+  const findTouch = (touches: ReactTouchEvent<HTMLCanvasElement>['touches'], identifier: number) => {
+    for (let index = 0; index < touches.length; index += 1) {
+      if (touches[index].identifier === identifier) return touches[index]
+    }
+    return null
+  }
+
+  const handleTouchStart = (event: ReactTouchEvent<HTMLCanvasElement>) => {
+    if (supportsPointerEventsRef.current) return
+    event.preventDefault()
+    const touch = event.changedTouches[0]
+    if (!touch) return
+    lastLegacyTouchAtRef.current = Date.now()
+    beginStroke(touch.identifier, localPoint(event.currentTarget, touch.clientX, touch.clientY))
+  }
+
+  const handleTouchMove = (event: ReactTouchEvent<HTMLCanvasElement>) => {
+    if (supportsPointerEventsRef.current || activePointerIdRef.current === null) return
+    event.preventDefault()
+    const touch = findTouch(event.touches, activePointerIdRef.current)
+    if (!touch) return
+    lastLegacyTouchAtRef.current = Date.now()
+    appendPoint(localPoint(event.currentTarget, touch.clientX, touch.clientY))
+    draw()
+  }
+
+  const handleTouchEnd = (event: ReactTouchEvent<HTMLCanvasElement>) => {
+    if (supportsPointerEventsRef.current || activePointerIdRef.current === null) return
+    event.preventDefault()
+    const touch = findTouch(event.changedTouches, activePointerIdRef.current)
+    lastLegacyTouchAtRef.current = Date.now()
+    finishStroke(touch ? localPoint(event.currentTarget, touch.clientX, touch.clientY) : undefined)
+  }
+
+  const handleLegacyMouseDown = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    if (supportsPointerEventsRef.current || Date.now() - lastLegacyTouchAtRef.current < 800) return
+    event.preventDefault()
+    beginStroke(-1, localPoint(event.currentTarget, event.clientX, event.clientY))
+  }
+
+  const handleLegacyMouseMove = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    if (supportsPointerEventsRef.current || activePointerIdRef.current !== -1) return
+    event.preventDefault()
+    appendPoint(localPoint(event.currentTarget, event.clientX, event.clientY))
+    draw()
+  }
+
+  const handleLegacyMouseUp = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    if (supportsPointerEventsRef.current || activePointerIdRef.current !== -1) return
+    event.preventDefault()
+    finishStroke(localPoint(event.currentTarget, event.clientX, event.clientY))
   }
 
   return (
@@ -298,6 +398,15 @@ export function TracingEngine({ lesson, stage, disabled = false, soundEnabled = 
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
           onLostPointerCapture={handlePointerCancel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={() => { if (!supportsPointerEventsRef.current) cancelStroke() }}
+          onMouseDown={handleLegacyMouseDown}
+          onMouseMove={handleLegacyMouseMove}
+          onMouseUp={handleLegacyMouseUp}
+          onMouseLeave={() => { if (!supportsPointerEventsRef.current && activePointerIdRef.current === -1) cancelStroke() }}
+          onContextMenu={(event) => event.preventDefault()}
         />
         {locked && <motion.div className="grading-badge" initial={{ scale: 0.7 }} animate={{ scale: 1 }}><Sparkles /> Checking your magic… (Проверяем волшебство…)</motion.div>}
       </div>

@@ -89,7 +89,7 @@ export const lessons: TraceLessonConfig[] = [
       label: 'I',
       strokeRule: 'stem-first',
       hint: 'Draw the long stem, then the top and bottom bars. (Сначала длинная линия, затем верхняя и нижняя перекладины.)',
-      tolerances: { corridor: 15, segmentCoverage: 0.58, minLength: 14, minPoints: 8 },
+      tolerances: { corridor: 18, segmentCoverage: 0.5, minLength: 10, minPoints: 5 },
       segments: [
         { id: 'stem', path: 'M50 14 L50 86' },
         { id: 'top', path: 'M38 14 L62 14' },
@@ -100,10 +100,10 @@ export const lessons: TraceLessonConfig[] = [
       label: 'i',
       strokeRule: 'stem-then-tap',
       hint: 'Draw the stem first, then tap the dot. (Сначала нарисуй линию, затем поставь точку.)',
-      tolerances: { corridor: 16, segmentCoverage: 0.58, minLength: 30, minPoints: 7 },
+      tolerances: { corridor: 19, segmentCoverage: 0.5, minLength: 22, minPoints: 4 },
       segments: [
         { id: 'stem', path: 'M50 82 L50 36' },
-        { id: 'dot', path: 'M50 22 m -2 0 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0', tap: { x: 50, y: 22, radius: 8 } },
+        { id: 'dot', path: 'M50 22 m -2 0 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0', tap: { x: 50, y: 22, radius: 11 } },
       ],
     },
   },
