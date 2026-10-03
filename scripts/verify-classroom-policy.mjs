@@ -4,12 +4,12 @@ import { classroomPolicyForGroup, studentLessonIsOpenForGroup } from '../src/dat
 const cases = [
   ['11-12', { releaseCount: 25, sequential: true }],
   ['Learn Letters 11-12', { releaseCount: 25, sequential: true }],
-  ['14', { releaseCount: 18, sequential: true }],
-  ['learnletters14', { releaseCount: 18, sequential: true }],
+  ['14', { releaseCount: 19, sequential: true }],
+  ['learnletters14', { releaseCount: 19, sequential: true }],
   ['15', { releaseCount: 0, sequential: false }],
   ['Группа 15', { releaseCount: 0, sequential: false }],
-  ['16', { releaseCount: 6, sequential: false }],
-  ['Learn Letters 16', { releaseCount: 6, sequential: false }],
+  ['16', { releaseCount: 8, sequential: false }],
+  ['Learn Letters 16', { releaseCount: 8, sequential: false }],
   ['1901979', { releaseCount: 0, sequential: false }],
   ['unknown', { releaseCount: 0, sequential: false }],
 ]
@@ -27,11 +27,14 @@ const accessCases = [
   ['14', 16, false, false],
   ['14', 16, true, true],
   ['14', 17, true, true],
-  ['14', 18, true, false],
+  ['14', 18, true, true],
+  ['14', 19, true, false],
   ['15', 0, true, false],
   ['16', 4, false, true],
   ['16', 5, false, true],
-  ['16', 6, true, false],
+  ['16', 6, false, true],
+  ['16', 7, false, true],
+  ['16', 8, true, false],
   ['unknown', 0, true, false],
 ]
 
