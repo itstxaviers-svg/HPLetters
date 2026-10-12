@@ -44,10 +44,10 @@ function readSession(storage: Storage, key: string): CloudSession | null {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 15_000): Promise<T> {
   if (!API_BASE) throw new Error('Cloud sync is not configured.')
   const controller = options.signal ? null : new AbortController()
-  const timeout = controller ? window.setTimeout(() => controller.abort(), 15_000) : null
+  const timeout = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -112,7 +112,7 @@ export async function loginTeacherCloud(pin: string): Promise<Student[]> {
   const response = await request<{ session: CloudSession }>('/teacher/login', {
     method: 'POST',
     body: JSON.stringify({ pin }),
-  })
+  }, 10_000)
   sessionStorage.setItem(TEACHER_SESSION_KEY, JSON.stringify(response.session))
   return fetchTeacherStudentsCloud(response.session)
 }

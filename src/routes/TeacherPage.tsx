@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Award, BarChart3, ChevronDown, ChevronUp, Crown, LockKeyhole, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react'
-import { useApp } from '../context/AppContext'
+import { useApp, type TeacherLoginResult } from '../context/AppContext'
 import { averageAccuracy, classAverageAccuracy, competitionScore, completedAssignedLetters, completionPercent, isTrueTie, latestActivityAt, rankStudents } from '../lib/scoring'
 import { alphabetOrder } from '../data/lessons'
 import { badges } from '../data/badges'
@@ -14,7 +14,8 @@ export function TeacherPage() {
   const navigate = useNavigate()
   const [unlocked, setUnlocked] = useState(teacherMode)
   const [pin, setPin] = useState('')
-  const [error, setError] = useState(false)
+  const [loginError, setLoginError] = useState<TeacherLoginResult | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [group, setGroup] = useState('All groups')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [studentAction, setStudentAction] = useState<{ studentId: string; kind: 'reset' | 'delete' } | null>(null)
@@ -49,8 +50,12 @@ export function TeacherPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (await enterTeacherMode(pin)) setUnlocked(true)
-    else setError(true)
+    setSubmitting(true)
+    setLoginError(null)
+    const result = await enterTeacherMode(pin)
+    setSubmitting(false)
+    if (result === 'success' || result === 'offline') setUnlocked(true)
+    else setLoginError(result)
   }
 
   const resetStudent = async (studentId: string, studentName: string) => {
@@ -95,11 +100,11 @@ export function TeacherPage() {
           <p>Enter the teacher PIN to view student progress. (Введите PIN учителя, чтобы увидеть прогресс учеников.)</p>
           <form onSubmit={submit}>
             <div className="pin-input-wrap">
-              <input type="password" value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 8)); setError(false) }} inputMode="numeric" autoComplete="current-password" placeholder="Enter PIN (Введите PIN)" aria-label="Teacher PIN (PIN учителя)" autoFocus />
+              <input type="password" value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 8)); setLoginError(null) }} inputMode="numeric" autoComplete="current-password" placeholder="Enter PIN (Введите PIN)" aria-label="Teacher PIN (PIN учителя)" autoFocus disabled={submitting} />
             </div>
-            <button className="primary-button">Unlock dashboard (Открыть кабинет)</button>
+            <button className="primary-button" disabled={submitting}>{submitting ? 'Connecting… (Подключаемся…)' : 'Unlock dashboard (Открыть кабинет)'}</button>
           </form>
-          {error && <span className="form-error">That PIN did not match. Try again. (Неверный PIN. Попробуйте ещё раз.)</span>}
+          {loginError === 'invalid-pin' && <span className="form-error">That PIN did not match. Try again. (Неверный PIN. Попробуйте ещё раз.)</span>}
         </section>
       </PageShell>
     )
@@ -123,7 +128,7 @@ export function TeacherPage() {
     return (
       <PageShell variant="teacher">
         <TopBar backTo="/" backLabel="Registration (Регистрация)" minimal />
-        <section className="teacher-gate parchment-card"><span className="gate-icon"><Users /></span><h1><span className="title-en">No students yet</span><small className="title-ru">(Учеников пока нет)</small></h1><p>Create the first student profile to begin collecting progress. (Создайте первый профиль ученика, чтобы начать собирать статистику.)</p></section>
+        <section className="teacher-gate parchment-card"><span className="gate-icon"><Users /></span><h1><span className="title-en">{teacherDataStatus === 'error' ? 'Cloud data unavailable' : 'No students yet'}</span><small className="title-ru">{teacherDataStatus === 'error' ? '(Облако временно недоступно)' : '(Учеников пока нет)'}</small></h1><p>{teacherDataStatus === 'error' ? 'The dashboard is open, but there is no saved class data on this device yet. Try again when the connection returns. (Кабинет открыт, но на этом устройстве пока нет сохранённой статистики класса.)' : 'Create the first student profile to begin collecting progress. (Создайте первый профиль ученика, чтобы начать собирать статистику.)'}</p>{teacherDataStatus === 'error' && <button className="primary-button" onClick={() => void refreshTeacherStudents()}><RefreshCw /> Retry cloud connection (Повторить)</button>}</section>
       </PageShell>
     )
   }

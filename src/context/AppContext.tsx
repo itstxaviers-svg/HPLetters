@@ -5,6 +5,7 @@ import { earnedBadgeIds } from '../lib/rewards'
 import { clearTeacherCloudSession, CloudRequestError, cloudSyncEnabled, connectStudentCloud, deleteStudentAccountCloud, fetchTeacherStudentsCloud, loginTeacherCloud, resetStudentResultsCloud, syncStudentCloud, type SyncStatus } from '../lib/cloud'
 
 export type TeacherDataStatus = 'idle' | 'loading' | 'ready' | 'error'
+export type TeacherLoginResult = 'success' | 'invalid-pin' | 'offline'
 
 interface AppContextValue {
   data: AppData
@@ -17,7 +18,7 @@ interface AppContextValue {
   cloudSyncEnabled: boolean
   registerStudent: (name: string, group: string) => Promise<Student>
   selectStudent: (id: string | null) => void
-  enterTeacherMode: (pin: string) => Promise<boolean>
+  enterTeacherMode: (pin: string) => Promise<TeacherLoginResult>
   refreshTeacherStudents: () => Promise<boolean>
   resetTeacherStudent: (studentId: string) => Promise<boolean>
   deleteTeacherStudent: (studentId: string) => Promise<boolean>
@@ -31,6 +32,29 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null)
 const TEACHER_PIN_DIGEST = '1950fe84f8d0a2addb4443369565f08f79230dd3e4a1164afee072a2f1e02a80'
+const TEACHER_CACHE_KEY = 'learn_letters_teacher_cache_v1'
+
+interface TeacherCache {
+  students: Student[]
+  updatedAt: string
+}
+
+function readTeacherCache(): TeacherCache | null {
+  try {
+    const cache = JSON.parse(localStorage.getItem(TEACHER_CACHE_KEY) ?? 'null') as TeacherCache | null
+    return cache && Array.isArray(cache.students) && typeof cache.updatedAt === 'string' ? cache : null
+  } catch {
+    return null
+  }
+}
+
+function saveTeacherCache(students: Student[], updatedAt = new Date().toISOString()) {
+  try {
+    localStorage.setItem(TEACHER_CACHE_KEY, JSON.stringify({ students, updatedAt } satisfies TeacherCache))
+  } catch {
+    // A full or restricted browser storage must not block the teacher dashboard.
+  }
+}
 
 async function pinDigest(pin: string) {
   const bytes = new TextEncoder().encode(pin)
@@ -48,12 +72,15 @@ const emptyLessonProgress = (letter: LetterKey): LessonProgress => ({
 export function AppProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(() => typeof window === 'undefined' ? defaultData : loadData())
   const [teacherMode, setTeacherMode] = useState(() => sessionStorage.getItem('learn_letters_teacher_mode') === 'true')
-  const [teacherStudents, setTeacherStudents] = useState<Student[] | null>(null)
+  const initialTeacherCache = useMemo(() => readTeacherCache(), [])
+  const [teacherStudents, setTeacherStudents] = useState<Student[] | null>(() => teacherMode ? initialTeacherCache?.students ?? null : null)
   const [teacherDataStatus, setTeacherDataStatus] = useState<TeacherDataStatus>('idle')
-  const [teacherLastUpdatedAt, setTeacherLastUpdatedAt] = useState<string | null>(null)
+  const [teacherLastUpdatedAt, setTeacherLastUpdatedAt] = useState<string | null>(() => teacherMode ? initialTeacherCache?.updatedAt ?? null : null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => cloudSyncEnabled ? 'syncing' : 'local')
   const syncGenerationRef = useRef(0)
   const teacherRefreshRef = useRef<Promise<boolean> | null>(null)
+  const teacherPinRef = useRef('')
+  const teacherCloudAuthenticatedRef = useRef(teacherMode)
 
   useEffect(() => saveData(data), [data])
 
@@ -103,15 +130,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const refresh = (async () => {
       setTeacherDataStatus('loading')
       try {
-        const cloudStudents = await fetchTeacherStudentsCloud()
+        const cloudStudents = teacherPinRef.current && !teacherCloudAuthenticatedRef.current
+          ? await loginTeacherCloud(teacherPinRef.current)
+          : await fetchTeacherStudentsCloud()
+        teacherCloudAuthenticatedRef.current = true
         setTeacherStudents(cloudStudents)
-        setTeacherLastUpdatedAt(new Date().toISOString())
+        const updatedAt = new Date().toISOString()
+        setTeacherLastUpdatedAt(updatedAt)
+        saveTeacherCache(cloudStudents, updatedAt)
         setTeacherDataStatus('ready')
         return true
       } catch (error) {
         if (error instanceof CloudRequestError && error.status === 401) {
           sessionStorage.removeItem('learn_letters_teacher_mode')
           clearTeacherCloudSession()
+          teacherCloudAuthenticatedRef.current = false
           setTeacherMode(false)
           setTeacherStudents(null)
           setTeacherDataStatus('idle')
@@ -177,25 +210,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (cloudSyncEnabled) {
       try {
         const cloudStudents = await loginTeacherCloud(pin)
+        teacherPinRef.current = pin
+        teacherCloudAuthenticatedRef.current = true
         setTeacherStudents(cloudStudents)
-        setTeacherLastUpdatedAt(new Date().toISOString())
+        const updatedAt = new Date().toISOString()
+        setTeacherLastUpdatedAt(updatedAt)
+        saveTeacherCache(cloudStudents, updatedAt)
         setTeacherDataStatus('ready')
         sessionStorage.setItem('learn_letters_teacher_mode', 'true')
         setTeacherMode(true)
-        return true
-      } catch {
-        return false
+        return 'success'
+      } catch (error) {
+        if (error instanceof CloudRequestError && error.status === 401) return 'invalid-pin'
+        if (await pinDigest(pin) !== TEACHER_PIN_DIGEST) return 'invalid-pin'
+        const cache = readTeacherCache()
+        teacherPinRef.current = pin
+        teacherCloudAuthenticatedRef.current = false
+        setTeacherStudents(cache?.students ?? data.students)
+        setTeacherLastUpdatedAt(cache?.updatedAt ?? null)
+        setTeacherDataStatus('error')
+        sessionStorage.setItem('learn_letters_teacher_mode', 'true')
+        setTeacherMode(true)
+        return 'offline'
       }
     }
-    if (await pinDigest(pin) !== TEACHER_PIN_DIGEST) return false
+    if (await pinDigest(pin) !== TEACHER_PIN_DIGEST) return 'invalid-pin'
     sessionStorage.setItem('learn_letters_teacher_mode', 'true')
     setTeacherMode(true)
-    return true
-  }, [])
+    return 'success'
+  }, [data.students])
 
   const exitTeacherMode = useCallback(() => {
     sessionStorage.removeItem('learn_letters_teacher_mode')
     clearTeacherCloudSession()
+    teacherPinRef.current = ''
+    teacherCloudAuthenticatedRef.current = false
     setTeacherStudents(null)
     setTeacherDataStatus('idle')
     setTeacherLastUpdatedAt(null)
