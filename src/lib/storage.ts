@@ -30,6 +30,11 @@ export function loadData(): AppData {
   }
 }
 
-export function saveData(data: AppData): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+export function saveData(data: AppData): boolean {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    return true
+  } catch {
+    return false
+  }
 }

@@ -5,9 +5,9 @@ export interface ClassroomPolicy {
 
 const policies: Record<'11-12' | '14' | '15' | '16', ClassroomPolicy> = {
   '11-12': { releaseCount: 25, sequential: true },
-  '14': { releaseCount: 20, sequential: true },
+  '14': { releaseCount: 25, sequential: false },
   '15': { releaseCount: 0, sequential: false },
-  '16': { releaseCount: 8, sequential: false },
+  '16': { releaseCount: 12, sequential: false },
 }
 
 function classroomGroup(group: string): keyof typeof policies | null {
@@ -27,8 +27,5 @@ export function classroomPolicyForGroup(group: string): ClassroomPolicy {
 export function studentLessonIsOpenForGroup(group: string, lessonIndex: number, previousLessonsComplete: boolean): boolean {
   const policy = classroomPolicyForGroup(group)
   if (lessonIndex < 0 || lessonIndex >= policy.releaseCount) return false
-  // The teacher has released Bb, Ff, Ll and Jj for group 14 even when
-  // earlier lessons have not yet been completed.
-  if (classroomGroup(group) === '14' && lessonIndex >= 16 && lessonIndex <= 19) return true
   return !policy.sequential || lessonIndex === 0 || previousLessonsComplete
 }

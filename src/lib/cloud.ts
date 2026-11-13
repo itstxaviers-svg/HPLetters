@@ -23,7 +23,9 @@ const STUDENT_SESSION_PREFIX = 'learn_letters_cloud_student_'
 const TEACHER_SESSION_KEY = 'learn_letters_cloud_teacher'
 const studentSyncQueues = new Map<string, Promise<Student | null>>()
 
-export const cloudSyncEnabled = Boolean(API_BASE)
+// Classroom progress is local-only. Keep the API helpers for a possible future
+// migration, but never start cloud requests from the app while this is false.
+export const cloudSyncEnabled = false
 
 export class CloudRequestError extends Error {
   constructor(message: string, readonly status: number) {

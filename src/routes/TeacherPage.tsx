@@ -74,7 +74,7 @@ export function TeacherPage() {
   }
 
   const deleteStudent = async (studentId: string, studentName: string) => {
-    const confirmed = window.confirm(`Delete ${studentName}'s account and all results?\n\nУдалить аккаунт ${studentName} и весь прогресс из облака? Это действие нельзя отменить.`)
+    const confirmed = window.confirm(`Delete ${studentName}'s account and all results on this device?\n\nУдалить аккаунт ${studentName} и весь прогресс на этом устройстве? Это действие нельзя отменить.`)
     if (!confirmed) return
     setStudentAction({ studentId, kind: 'delete' })
     setStudentActionMessage(null)
@@ -102,7 +102,7 @@ export function TeacherPage() {
             <div className="pin-input-wrap">
               <input type="password" value={pin} onChange={(event) => { setPin(event.target.value.replace(/\D/g, '').slice(0, 8)); setLoginError(null) }} inputMode="numeric" autoComplete="current-password" placeholder="Enter PIN (Введите PIN)" aria-label="Teacher PIN (PIN учителя)" autoFocus disabled={submitting} />
             </div>
-            <button className="primary-button" disabled={submitting}>{submitting ? 'Connecting… (Подключаемся…)' : 'Unlock dashboard (Открыть кабинет)'}</button>
+            <button className="primary-button" disabled={submitting}>{submitting ? 'Checking… (Проверяем…)' : 'Unlock dashboard (Открыть кабинет)'}</button>
           </form>
           {loginError === 'invalid-pin' && <span className="form-error">That PIN did not match. Try again. (Неверный PIN. Попробуйте ещё раз.)</span>}
         </section>
@@ -128,7 +128,7 @@ export function TeacherPage() {
     return (
       <PageShell variant="teacher">
         <TopBar backTo="/" backLabel="Registration (Регистрация)" minimal />
-        <section className="teacher-gate parchment-card"><span className="gate-icon"><Users /></span><h1><span className="title-en">{teacherDataStatus === 'error' ? 'Cloud data unavailable' : 'No students yet'}</span><small className="title-ru">{teacherDataStatus === 'error' ? '(Облако временно недоступно)' : '(Учеников пока нет)'}</small></h1><p>{teacherDataStatus === 'error' ? 'The dashboard is open, but there is no saved class data on this device yet. Try again when the connection returns. (Кабинет открыт, но на этом устройстве пока нет сохранённой статистики класса.)' : 'Create the first student profile to begin collecting progress. (Создайте первый профиль ученика, чтобы начать собирать статистику.)'}</p>{teacherDataStatus === 'error' && <button className="primary-button" onClick={() => void refreshTeacherStudents()}><RefreshCw /> Retry cloud connection (Повторить)</button>}</section>
+        <section className="teacher-gate parchment-card"><span className="gate-icon"><Users /></span><h1><span className="title-en">{teacherDataStatus === 'error' ? 'Cloud data unavailable' : 'No students on this device'}</span><small className="title-ru">{teacherDataStatus === 'error' ? '(Облако временно недоступно)' : '(На этом устройстве учеников пока нет)'}</small></h1><p>{teacherDataStatus === 'error' ? 'The dashboard is open, but there is no saved class data on this device yet. Try again when the connection returns. (Кабинет открыт, но на этом устройстве пока нет сохранённой статистики класса.)' : 'Progress from other devices is not available in local mode. Create a student profile here to begin. (В локальном режиме прогресс с других устройств не виден. Создайте профиль ученика на этом устройстве.)'}</p>{teacherDataStatus === 'error' && <button className="primary-button" onClick={() => void refreshTeacherStudents()}><RefreshCw /> Retry cloud connection (Повторить)</button>}</section>
       </PageShell>
     )
   }
@@ -146,6 +146,8 @@ export function TeacherPage() {
           {currentStudent && <button className="secondary-button" onClick={() => navigate('/menu')}>Check letters (Проверить буквы)</button>}
         </div>
       </section>
+
+      {!cloudSyncEnabled && <div className="teacher-sync-bar" role="status"><span><i />Local mode: only students saved on this device are shown. (Локальный режим: видны только ученики, сохранённые на этом устройстве.)</span></div>}
 
       {cloudSyncEnabled && <div className={`teacher-sync-bar teacher-sync-bar--${teacherDataStatus}`}>
         <span><i />{teacherDataStatus === 'error'
@@ -188,7 +190,7 @@ export function TeacherPage() {
                       <div><h3>Letter breakdown (По буквам)</h3><small className="student-last-active">Last activity (Последняя активность): {latestActivityAt(student) ? new Date(latestActivityAt(student)!).toLocaleString() : '—'}</small>{alphabetOrder.map((letter) => student.progress[letter]).filter(Boolean).map((progress) => <p key={progress!.letter}><strong>{progress!.letter.toUpperCase()}</strong><span>Uppercase (Заглавная) {progress!.uppercase.bestAccuracy}%</span><span>Lowercase (Строчная) {progress!.lowercase.bestAccuracy}%</span><span>{progress!.completed ? 'Mastered (Изучено)' : 'In progress (В процессе)'}</span></p>)}</div>
                       <div><h3>Earned rewards (Награды)</h3><div className="mini-badges">{student.badges.length ? student.badges.map((award) => { const badge = badges.find((item) => item.id === award.badgeId); return badge && <span key={award.badgeId}><img src={badge.image} alt="" />{badge.title}</span> }) : <small>No badges yet — the first one is close. (Наград пока нет — первая уже близко.)</small>}</div></div>
                       <div className="student-admin-actions">
-                        <div><strong>Manage student (Управление учеником)</strong><small>Changes are saved in the cloud and applied on the student's device. (Изменения сохраняются в облаке и применяются на устройстве ученика.)</small></div>
+                        <div><strong>Manage student (Управление учеником)</strong><small>Changes affect only this device. (Изменения сохраняются только на этом устройстве.)</small></div>
                         <div>
                           <button className="secondary-button" disabled={studentAction !== null} onClick={() => void resetStudent(student.id, student.name)}>
                             <RotateCcw className={studentAction?.studentId === student.id && studentAction.kind === 'reset' ? 'is-spinning' : ''} /> Clear results (Очистить результаты)

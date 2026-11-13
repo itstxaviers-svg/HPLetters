@@ -41,8 +41,6 @@ jobs:
 
       - name: Build application
         run: npm run build -- --mode github
-        env:
-          VITE_YANDEX_API_URL: ${{ vars.VITE_YANDEX_API_URL }}
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

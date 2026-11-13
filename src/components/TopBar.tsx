@@ -12,11 +12,13 @@ interface TopBarProps {
 
 export function TopBar({ backTo, backLabel = 'Back (Назад)', minimal = false, hideBrand = false }: TopBarProps) {
   const navigate = useNavigate()
-  const { syncStatus } = useApp()
-  const syncLabel = syncStatus === 'synced' ? 'Cloud progress saved (Прогресс в облаке)'
-    : syncStatus === 'syncing' ? 'Saving to cloud… (Сохраняем…)'
-      : syncStatus === 'error' ? 'Saved locally • cloud offline (Локально сохранено)'
-        : 'Local progress saved (Прогресс сохранён)'
+  const { syncStatus, cloudSyncEnabled } = useApp()
+  const syncLabel = !cloudSyncEnabled
+    ? syncStatus === 'error' ? 'Could not save on this device (Не удалось сохранить на устройстве)' : 'Saved on this device (Сохранено на устройстве)'
+    : syncStatus === 'synced' ? 'Cloud progress saved (Прогресс в облаке)'
+      : syncStatus === 'syncing' ? 'Saving to cloud… (Сохраняем…)'
+        : syncStatus === 'error' ? 'Saved locally • cloud offline (Локально сохранено)'
+          : 'Local progress saved (Прогресс сохранён)'
   return (
     <header className="topbar">
       {backTo ? (

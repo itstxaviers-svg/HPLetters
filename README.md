@@ -2,13 +2,13 @@
 
 ## Current class release plan
 
-- Group `14`: letters are released in order through `Hh` (16 letters).
+- Group `14`: all 25 letters are open without prerequisites.
 - Group `15`: all lessons are currently closed.
-- Group `16`: the first five letters are open (`Ss`, `Ii`, `Tt`, `Pp`, `Aa`).
+- Group `16`: the first 12 letters are open (`Ss` through `Kk`).
 - Combined group `11-12`: the full alphabet is available as a sequential path; each next letter opens only after the previous letter is completed.
 - Teacher test mode keeps every letter open and never changes a child's saved progress.
 
-Student profiles and progress are saved locally first and synchronized to the Yandex Cloud student database. A child is added to the teacher dashboard automatically after signing in with a valid group code.
+Student profiles and progress are saved only in this browser on this device. Cloud sync is disabled. The teacher dashboard shows only profiles saved on the same device; it does not combine progress from children's phones. Clearing browser data or switching devices does not transfer progress.
 
 Светлый phonics + handwriting trainer на Vite, React и TypeScript.
 
@@ -29,7 +29,7 @@ npm run build
 ## Что реализовано
 
 - профили учеников по имени и группе;
-- local-first хранение прогресса, попыток, настроек и наград;
+- локальное хранение прогресса, попыток, настроек и наград;
 - последовательная разблокировка алфавита;
 - единый Canvas/SVG tracing engine с Pointer Events;
 - полноценные SVG-траектории Uppercase и Lowercase для всех 25 букв текущего учебного блока;
@@ -41,9 +41,7 @@ npm run build
 - адаптивная компоновка для desktop, tablet и mobile;
 - `prefers-reduced-motion`.
 
-Учительская блокировка в local-first версии защищает кабинет только на текущем устройстве. Для общего кабинета и настоящей серверной авторизации предусмотрено подключение Yandex Cloud.
-
-Cloud sync намеренно оставлен за адаптером следующего этапа: текущая версия полностью работает без сети через `localStorage`.
+Учительская блокировка защищает кабинет только на текущем устройстве. Синхронизация с Yandex Cloud отключена; существующие данные в YDB этим обновлением не удаляются.
 
 ## Публикация
 

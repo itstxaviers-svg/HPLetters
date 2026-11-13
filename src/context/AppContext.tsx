@@ -82,7 +82,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const teacherPinRef = useRef('')
   const teacherCloudAuthenticatedRef = useRef(teacherMode)
 
-  useEffect(() => saveData(data), [data])
+  useEffect(() => {
+    const saved = saveData(data)
+    if (!cloudSyncEnabled) setSyncStatus(saved ? 'local' : 'error')
+  }, [data])
 
   const currentStudent = data.students.find((student) => student.id === data.currentStudentId) ?? null
 

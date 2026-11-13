@@ -33,8 +33,8 @@ export function MenuPage() {
         </div>
         <div className="menu-dashboard__side">
           <div className="menu-progress-card">
-            <ProgressRing value={completionPercent} label="current path (текущий путь)" />
-            <div><strong>{completeCount} of {pathLength} (из {pathLength})</strong><span>{pathLength > 0 ? 'letters mastered (букв изучено)' : 'Lessons are not open yet (Уроки пока закрыты)'}</span><small>Group (Группа) {currentStudent.group}</small></div>
+            <ProgressRing value={completionPercent} label="my progress (мой прогресс)" />
+            <div><strong>{completionPercent}% — {completeCount} of {pathLength} (из {pathLength})</strong><span>{pathLength > 0 ? 'letters mastered (букв изучено)' : 'Lessons are not open yet (Уроки пока закрыты)'}</span><small>Group (Группа) {currentStudent.group}</small></div>
           </div>
           <nav className="quick-actions quick-actions--compact" aria-label="Student actions (Действия ученика)">
             <button onClick={() => navigate('/rewards')}><span className="quick-icon quick-icon--gold"><Award /></span><span><strong>My rewards (Мои награды)</strong><small>Magical collection (Коллекция)</small></span><ChevronRight /></button>
