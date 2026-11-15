@@ -4,7 +4,7 @@
 
 - Group `14`: all 25 letters are open without prerequisites.
 - Group `15`: all lessons are currently closed.
-- Group `16`: the first 12 letters are open (`Ss` through `Kk`).
+- Group `16`: all 25 letters are open without prerequisites.
 - Combined group `11-12`: the full alphabet is available as a sequential path; each next letter opens only after the previous letter is completed.
 - Teacher test mode keeps every letter open and never changes a child's saved progress.
 

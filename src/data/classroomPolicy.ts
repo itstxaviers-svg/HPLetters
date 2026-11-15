@@ -7,7 +7,7 @@ const policies: Record<'11-12' | '14' | '15' | '16', ClassroomPolicy> = {
   '11-12': { releaseCount: 25, sequential: true },
   '14': { releaseCount: 25, sequential: false },
   '15': { releaseCount: 0, sequential: false },
-  '16': { releaseCount: 12, sequential: false },
+  '16': { releaseCount: 25, sequential: false },
 }
 
 function classroomGroup(group: string): keyof typeof policies | null {

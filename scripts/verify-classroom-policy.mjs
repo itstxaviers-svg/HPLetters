@@ -8,8 +8,8 @@ const cases = [
   ['learnletters14', { releaseCount: 25, sequential: false }],
   ['15', { releaseCount: 0, sequential: false }],
   ['Группа 15', { releaseCount: 0, sequential: false }],
-  ['16', { releaseCount: 12, sequential: false }],
-  ['Learn Letters 16', { releaseCount: 12, sequential: false }],
+  ['16', { releaseCount: 25, sequential: false }],
+  ['Learn Letters 16', { releaseCount: 25, sequential: false }],
   ['1901979', { releaseCount: 0, sequential: false }],
   ['unknown', { releaseCount: 0, sequential: false }],
 ]
@@ -42,7 +42,9 @@ const accessCases = [
   ['16', 9, false, true],
   ['16', 10, false, true],
   ['16', 11, false, true],
-  ['16', 12, true, false],
+  ['16', 12, false, true],
+  ['16', 24, false, true],
+  ['16', 25, true, false],
   ['unknown', 0, true, false],
 ]
 
